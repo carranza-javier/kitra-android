@@ -1,87 +1,65 @@
 # Kitra
 
-Traduce cualquier texto de la pantalla del móvil con **captura nativa + una pulsación**. Haz una captura con los botones de siempre, pulsa «Traducir» en el aviso y lee la traducción, hecha con Gemini, en una hoja ligera. Copia, cierra y sigue leyendo.
+Translate any text on your phone screen with **a native screenshot + one tap**. Take a screenshot with the usual buttons, tap "Translate" on the notification and read a natural translation in a lightweight sheet. Copy, close and keep reading.
 
-- Sin cuentas, sin servidor y sin analíticas. **Sin clave:** traduce en el propio teléfono (Gemini Nano si el móvil lo tiene; si no, ML Kit). Opcionalmente, «Máxima calidad» con Gemini en la nube y tu propia clave.
-- Las capturas nunca se borran, mueven ni modifican. La imagen solo se envía a Google cuando pulsas «Traducir».
+- No accounts, no servers, no analytics.
+- **With your own free Gemini API key**, Kitra translates with Gemini (context, idioms and tone).
+- **Without a key** (or offline), Kitra falls back to a basic on-device mode (Gemini Nano when the phone has it, otherwise ML Kit). The screenshot never leaves the phone in basic mode.
+- Screenshots are never deleted, moved or modified. In Gemini mode, the image is sent to Google only when you tap "Translate".
 
-Estado: **fase 1 (Android)** en `main`; **fase 2 (traducción en el dispositivo)** en la rama `feature/on-device-translation` (ver [`docs/INFORME-FASE2.md`](docs/INFORME-FASE2.md)). La especificación está en [`SPEC.md`](SPEC.md) y las decisiones en [`docs/DECISIONES.md`](docs/DECISIONES.md).
-
-## Estructura
+## Project structure
 
 ```
-core/   Lógica sin Android (portable a iOS con KMP): prompt, TranslationProvider,
-        cliente REST de Gemini con streaming, filtro de capturas y tamaño de imagen. Tests unitarios.
-app/    App Android (Kotlin + Jetpack Compose): configuración, detección de capturas (JobScheduler),
-        aviso heads-up, entrada por compartir, preprocesado y vista de resultado.
-testdata/  Capturas de prueba ficticias (de, fr, it, en) y el script que las genera.
+core/      Platform-independent logic (portable to iOS with KMP): translation prompt, TranslationProvider,
+           Gemini REST client with streaming, engine selection and fallback, OCR screen-text filter,
+           screenshot filter and image sizing. Unit tests.
+app/       Android app (Kotlin + Jetpack Compose): setup, screenshot detection (JobScheduler),
+           heads-up notification, share target, image preprocessing, on-device engines and result sheet.
+testdata/  Fictional test screenshots (de, fr, it, en, zh) and the script that generates them.
 ```
 
-El prompt de traducción está en un único archivo: `core/src/main/kotlin/app/kitra/core/TranslationPrompt.kt`.
+The translation prompt lives in a single file: `core/src/main/kotlin/.../core/TranslationPrompt.kt`.
 
-## Motores de traducción (fase 2)
+## Translation engines
 
-| Motor | Cuándo | Calidad | Privacidad |
+| Engine | When | Quality | Privacy |
 |---|---|---|---|
-| Gemini Nano (en el teléfono) | Automático si el móvil lo tiene (Pixel 9+, Galaxy S25+…) | Por medir en un móvil real | La captura no sale del móvil |
-| ML Kit (en el teléfono) | Automático en cualquier otro móvil con Google Play Services | Literal: falla en expresiones y contexto | La captura no sale del móvil |
-| Gemini en la nube | Solo si activas «Máxima calidad» en Avanzado y pones tu clave | La mejor | La captura se envía a Google |
+| Gemini (cloud, user's own key) | Main engine whenever a key is set and the phone is online | Best | The screenshot is sent to Google when you tap "Translate" |
+| Gemini Nano (on device) | Basic mode on supported phones (Pixel 9+, Galaxy S25+…) | Basic | Stays on the phone |
+| ML Kit (on device) | Basic mode on any other phone with Google Play services | Basic, literal | Stays on the phone |
 
-## 1. (Opcional) Obtener una clave de Gemini API para «Máxima calidad»
+## 1. Get a free Gemini API key (optional, recommended)
 
-1. Entra en <https://aistudio.google.com/apikey> con tu cuenta de Google.
-2. Pulsa **Create API key** y cópiala.
-3. El nivel gratuito tiene límites diarios, que puedes consultar en <https://aistudio.google.com/rate-limit>. Google puede cambiarlos.
-4. **Privacidad:** en el nivel gratuito, Google puede usar lo que envías para mejorar sus productos, y revisores humanos pueden leerlo. Con facturación activada no se usa. Detalles: <https://ai.google.dev/gemini-api/terms>.
+1. Open <https://aistudio.google.com/apikey> and sign in with your Google account.
+2. Tap **Create API key** and copy it.
+3. Back in Kitra, the key is detected from the clipboard: confirm it with one tap.
 
-La clave se introduce **dentro de la app** y se guarda cifrada con Android Keystore. Nunca la pongas en el código ni en archivos del repositorio.
+Free-tier limits are shown in Google AI Studio and may change. **Privacy:** on the free tier, Google may use submitted content to improve its products and human reviewers may read it; with billing enabled it does not. See <https://ai.google.dev/gemini-api/terms>.
 
-## 2. Compilar
+The key is stored encrypted with the Android Keystore. Never put real keys in code or in the repository.
 
-Requisitos: JDK 17 o posterior y el Android SDK con la plataforma 37 (`sdkmanager "platforms;android-37.0"`). Crea `local.properties` con `sdk.dir=...` si Android Studio no lo hace por ti.
+## 2. Build
+
+Requirements: JDK 17+ and the Android SDK with platform 37 (`sdkmanager "platforms;android-37.0"`). Create `local.properties` with `sdk.dir=...` if Android Studio does not.
 
 ```bash
-./gradlew test            # tests unitarios
-./gradlew assembleDebug   # un APK por arquitectura: app/build/outputs/apk/debug/app-arm64-v8a-debug.apk, …
-./gradlew bundleRelease   # AAB para Google Play
+./gradlew test            # unit tests
+./gradlew assembleDebug   # one APK per ABI, e.g. app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
+./gradlew bundleRelease   # Android App Bundle for Google Play
 ```
 
-## 3. Instalar en el móvil
+## 3. Install on a phone
 
-1. En el móvil, activa **Opciones de desarrollador → Depuración USB** y conéctalo por USB.
-2. `adb install -r app/build/outputs/apk/debug/app-arm64-v8a-debug.apk` (casi todos los móviles actuales son arm64)
+1. Enable **Developer options → USB debugging** and connect the phone.
+2. `adb install -r app/build/outputs/apk/debug/app-arm64-v8a-debug.apk` (almost every current phone is arm64).
 
-También puedes copiar el APK al móvil y abrirlo (habrá que permitir instalar apps desconocidas).
+## 4. Use
 
-## 4. Configurar (una sola vez)
+- **Screenshot:** take a screenshot → a "Translate" notification appears → tap it → the translation streams in → **Copy** / **Close**.
+- **Share:** share any image with **Kitra** from any app or the gallery.
 
-1. Abre **Kitra**: se piden los permisos solos. Acepta **Notificaciones** y **Fotos y vídeos → «Permitir todo»** (solo para detectar capturas nuevas).
-2. Elige el idioma de destino (por defecto, el del sistema). Su paquete (unos 30 MB) se descarga solo, preferiblemente con wifi.
-3. Ya está: no hace falta clave. Para usar Gemini en la nube: **Avanzado → Máxima calidad**, pega tu clave y pulsa **Guardar y probar**.
-
-## 5. Usar
-
-- **Captura:** haz una captura con encendido + bajar volumen → aparece «Captura detectada · Traducir» → púlsalo → la traducción aparece en streaming → **Copiar** / **Cerrar**.
-- **Compartir:** desde cualquier app o la galería, comparte una imagen con **Kitra**.
-
-## Probar en el emulador (desarrollo)
+## Debugging
 
 ```bash
-adb install -r app/build/outputs/apk/debug/app-x86_64-debug.apk
-# Proveedor falso (solo debug), para probar sin clave:
-adb shell am start -n app.kitra/.ui.setup.SetupActivity --ez debug_fake_provider true
-adb shell pm grant app.kitra android.permission.READ_MEDIA_IMAGES
-adb shell pm grant app.kitra android.permission.POST_NOTIFICATIONS
-adb shell am start -n app.kitra/.ui.setup.SetupActivity   # programa la detección
-adb shell input keyevent KEYCODE_HOME
-adb shell input keyevent KEYCODE_SYSRQ                     # captura real del sistema
-adb shell dumpsys notification --noredact | grep -A20 app.kitra
-# Compartir una imagen:
-adb push testdata/screenshot_de.png /sdcard/Download/
-adb shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Download/screenshot_de.png
-adb shell am start -a android.intent.action.SEND -t image/png \
-  --eu android.intent.extra.STREAM content://media/external/images/media/<ID> -n app.kitra/.ui.translate.TranslateActivity
-adb logcat -s Kitra   # solo tiempos, tamaños y motor, nunca contenido
-# Forzar un motor para comparar (solo debug): nano | mlkit | cloud | auto
-adb shell am start -S -n app.kitra/.ui.setup.SetupActivity --es debug_engine mlkit
+adb logcat -s Kitra   # timings, sizes and engine only, never content
 ```
