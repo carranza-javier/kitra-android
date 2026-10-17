@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Kitra</string>
+
+    <!-- Aviso de captura -->
+    <string name="channel_screenshots">Capturas de pantalla</string>
+    <string name="channel_screenshots_desc">Aviso breve para traducir una captura recién hecha</string>
+    <string name="notif_title">Captura detectada</string>
+    <string name="notif_text">Pulsa para traducirla</string>
+    <string name="action_translate">Traducir</string>
+
+    <!-- Vista de resultado -->
+    <string name="translating">Traduciendo…</string>
+    <string name="copy">Copiar</string>
+    <string name="copied">Copiado</string>
+    <string name="close">Cerrar</string>
+    <string name="retry">Reintentar</string>
+    <string name="open_settings">Abrir configuración</string>
+    <string name="needs_setup">Configura tu clave de Gemini API para empezar a traducir.</string>
+
+    <!-- Errores -->
+    <string name="error_invalid_key">La clave de Gemini API no es válida o no tiene permiso. Revísala en la configuración de Kitra.</string>
+    <string name="error_quota">Has agotado la cuota de Gemini API por ahora. Espera un poco o revisa tus límites en Google AI Studio.</string>
+    <string name="error_unavailable">Gemini no está disponible en este momento. Inténtalo de nuevo en unos segundos.</string>
+    <string name="error_no_connection">Sin conexión a internet. Comprueba la red e inténtalo de nuevo.</string>
+    <string name="error_model">El modelo configurado no existe o no está disponible para tu clave.</string>
+    <string name="error_blocked">Gemini no ha querido procesar esta imagen.</string>
+    <string name="error_empty">No se ha recibido ninguna traducción. Inténtalo de nuevo.</string>
+    <string name="error_too_large">La imagen es demasiado grande para enviarla.</string>
+    <string name="error_image">No se ha podido abrir la imagen.</string>
+    <string name="error_unknown">Algo ha fallado al traducir. Inténtalo de nuevo.</string>
+
+    <!-- Configuración -->
+    <string name="setup_tagline">Haz una captura y pulsa «Traducir». Nada más.</string>
+    <string name="setup_key_title">Clave de Gemini API</string>
+    <string name="setup_key_desc">Kitra usa tu propia clave. Se guarda cifrada en este teléfono y solo se envía a Google.</string>
+    <string name="setup_key_get">Obtener una clave en Google AI Studio</string>
+    <string name="setup_key_hint">Pega aquí tu clave</string>
+    <string name="setup_key_save">Guardar y probar</string>
+    <string name="setup_key_testing">Probando conexión…</string>
+    <string name="setup_key_ok">Clave guardada y funcionando</string>
+    <string name="setup_key_saved">Clave guardada</string>
+    <string name="setup_key_change">Cambiar</string>
+    <string name="setup_key_test">Probar conexión</string>
+    <string name="setup_lang_title">Traducir al</string>
+    <string name="setup_detect_title">Aviso al hacer una captura</string>
+    <string name="setup_detect_desc">Kitra detecta tus capturas nuevas y muestra un aviso «Traducir» durante unos segundos. No guarda, mueve ni borra tus capturas.</string>
+    <string name="setup_perm_needed">Necesita permiso para ver tus fotos (solo para detectar capturas nuevas) y para mostrar avisos.</string>
+    <string name="setup_perm_grant">Conceder permisos</string>
+    <string name="setup_perm_partial">Has dado acceso solo a algunas fotos. Así Kitra no puede ver las capturas nuevas. Elige «Permitir todo» en los permisos de Fotos y vídeos, o usa «Compartir» con Kitra.</string>
+    <string name="setup_perm_denied">Permiso denegado. Puedes activarlo en los ajustes del sistema, o usar «Compartir» con Kitra desde cualquier imagen.</string>
+    <string name="setup_notif_denied">Los avisos están desactivados para Kitra. Actívalos en los ajustes del sistema.</string>
+    <string name="setup_perm_ok">Listo. Haz una captura para probarlo.</string>
+    <string name="setup_share_title">También desde «Compartir»</string>
+    <string name="setup_share_desc">Comparte cualquier imagen con Kitra para traducirla, aunque no sea una captura.</string>
+    <string name="setup_privacy_title">Privacidad</string>
+    <string name="setup_privacy_body">• La imagen solo se envía a Google (Gemini API) cuando pulsas «Traducir».\n• Kitra no guarda capturas ni traducciones, no tiene servidor ni analíticas.\n• Importante: en el nivel gratuito de Gemini API, Google usa lo que envías y las respuestas para mejorar sus productos, y revisores humanos pueden leerlo. No traduzcas información sensible con una clave gratuita.\n• Con facturación activada (nivel de pago), Google indica que no usa tus peticiones para mejorar sus productos.</string>
+    <string name="setup_privacy_terms">Ver condiciones de Gemini API</string>
+    <string name="setup_advanced">Avanzado</string>
+    <string name="setup_model">Modelo de Gemini</string>
+    <string name="setup_model_desc">Predeterminado: %1$s. Cámbialo solo si sabes lo que haces.</string>
+    <string name="setup_debug_fake">Proveedor falso (solo depuración)</string>
+    <string name="shortcut_share">Traducir</string>
+</resources>

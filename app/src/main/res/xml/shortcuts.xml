@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Direct Share: Kitra puede aparecer en la fila de accesos directos del menú de compartir. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <share-target android:targetClass="app.kitra.ui.translate.TranslateActivity">
+        <data android:mimeType="image/*" />
+        <category android:name="app.kitra.category.TRANSLATE_SHARE_TARGET" />
+    </share-target>
+</shortcuts>

@@ -1,0 +1,16 @@
+// Lógica de traducción sin dependencias de Android, portable a Kotlin Multiplatform (fase 3).
+plugins {
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
+}
+
+kotlin {
+    jvmToolchain(17)
+}
+
+dependencies {
+    api(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.serialization.json)
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+}
