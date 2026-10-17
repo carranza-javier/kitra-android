@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kitra · Política de privacidad / Datenschutzerklärung / Privacy policy</title>
+<meta name="description" content="Política de privacidad de la app Kitra · Datenschutzerklärung der App Kitra · Privacy policy of the Kitra app">
+<style>
+  :root { --ink:#141b34; --muted:#4b5470; --brand:#1f5eff; --bg:#f7f8fc; --card:#ffffff; --line:#dfe3ef; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink:#e8ebf5; --muted:#a8b0c8; --brand:#7ea2ff; --bg:#0f1220; --card:#171b2e; --line:#2a3050; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  nav { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+  nav a { padding:6px 14px; border:1px solid var(--line); border-radius:999px; color:var(--brand); text-decoration:none; background:var(--card); }
+  section { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:24px; margin-bottom:24px; }
+  h1 { font-size:1.6rem; margin:0 0 4px; } h2 { font-size:1.15rem; margin:24px 0 8px; }
+  .meta { color:var(--muted); margin:0 0 16px; }
+  .todo { background:#fff3cd; color:#5c4400; padding:0 4px; border-radius:4px; }
+  a { color:var(--brand); }
+</style>
+</head>
+<body>
+<main>
+<nav>
+  <a href="#es" hreflang="es">Español</a>
+  <a href="#de" hreflang="de">Deutsch</a>
+  <a href="#en" hreflang="en">English</a>
+</nav>
+
+<!-- ===================================================== ES -->
+<section id="es" lang="es">
+<h1>Política de privacidad de Kitra</h1>
+<p class="meta">Última actualización: 17 de octubre de 2026 · App: Kitra (com.kettenki.kitra) · Responsable: Kettenki · Contacto: <a href="mailto:REPLACE_WITH_CONTACT_EMAIL"><span class="todo">REPLACE_WITH_CONTACT_EMAIL</span></a></p>
+
+<p>Kitra traduce el texto de las capturas de pantalla de tu teléfono. Esta política explica con exactitud qué datos intervienen y adónde van.</p>
+
+<h2>Lo más importante</h2>
+<ul>
+  <li>Kitra <strong>no tiene servidores propios</strong>, ni cuentas de usuario, ni anuncios, ni analíticas propias.</li>
+  <li>Kitra <strong>no guarda tus capturas ni tus traducciones</strong>. La imagen se procesa en la memoria del teléfono y se descarta al cerrar la ventana de resultado.</li>
+  <li>Kitra <strong>nunca borra, mueve ni modifica</strong> tus capturas.</li>
+</ul>
+
+<h2>1. Traducción con tu clave de Gemini</h2>
+<p>Si configuras tu propia clave de Gemini API, al pulsar «Traducir» Kitra envía la captura <strong>directamente desde tu teléfono a Google (Gemini API)</strong>, autenticada con tu clave. Solo se envía cuando pulsas «Traducir» y solo esa captura. Kitra no actúa como intermediario: no pasa por ningún servidor de Kitra.</p>
+<p>El uso de Gemini API se rige por las <a href="https://ai.google.dev/gemini-api/terms">condiciones de Gemini API</a> y la <a href="https://policies.google.com/privacy">política de privacidad de Google</a>. <strong>En el nivel gratuito, Google puede usar el contenido que envías y las respuestas para mejorar sus productos, y revisores humanos pueden leerlos.</strong> Con la facturación activada (nivel de pago), Google indica que no lo usa para mejorar sus productos. No traduzcas información sensible con una clave gratuita.</p>
+<p>Tu clave se guarda <strong>cifrada en tu teléfono</strong> (Android Keystore) y solo se envía a Google para autenticar tus traducciones. Puedes quitarla en cualquier momento en los ajustes de Kitra.</p>
+
+<h2>2. Modo básico (sin clave o sin conexión)</h2>
+<p>En modo básico, Kitra traduce en el propio teléfono con Gemini Nano (si tu móvil lo tiene) o con ML Kit de Google. <strong>La captura y su texto no salen del teléfono.</strong></p>
+<p>Para funcionar, el modo básico descarga de Google los paquetes de idioma y los modelos de reconocimiento de texto. Los componentes de Google (ML Kit) envían a Google <strong>datos técnicos de diagnóstico</strong>: modelo y sistema del dispositivo, versión de la app, métricas de rendimiento y errores, idiomas configurados o detectados y un identificador de instalación que no te identifica personalmente. Nunca envían la imagen ni el texto. Más información: <a href="https://developers.google.com/ml-kit/android-data-disclosure">divulgación de datos de ML Kit</a>.</p>
+
+<h2>3. Permisos</h2>
+<ul>
+  <li><strong>Fotos e imágenes</strong> (solo en la versión con aviso automático): para detectar cada captura nueva en la carpeta de capturas y ofrecerte traducirla. Kitra ignora cualquier otra imagen: no la abre, no la guarda y no la envía.</li>
+  <li>En la versión sin permiso de fotos, el aviso abre el selector de fotos del sistema y Kitra solo accede a la imagen que eliges.</li>
+  <li><strong>Notificaciones</strong>: para mostrar el aviso «Traducir».</li>
+  <li><strong>Internet</strong>: para traducir con tu clave y descargar los paquetes de idioma.</li>
+</ul>
+
+<h2>4. Datos en tu teléfono</h2>
+<p>Kitra guarda en tu teléfono solo sus ajustes (idioma de destino, preferencias), tu clave cifrada y un historial de diagnóstico de las últimas traducciones (hora, motor usado y tiempos, <strong>sin texto ni imágenes</strong>), que puedes borrar en Avanzado → Diagnóstico. Al desinstalar Kitra se borra todo. Kitra no hace copias de seguridad en la nube.</p>
+
+<h2>5. Edad mínima</h2>
+<p>Kitra está destinada a personas mayores de 18 años y no está dirigida a menores. Las condiciones de Gemini API exigen tener al menos 18 años para usarla.</p>
+
+<h2>6. Tus derechos y contacto</h2>
+<p>Kitra no conserva datos personales tuyos, así que no hay datos que podamos consultar, corregir o borrar en servidores propios. Para los datos tratados por Google, consulta la <a href="https://policies.google.com/privacy">política de privacidad de Google</a>. Para cualquier pregunta sobre esta política, escríbenos a <a href="mailto:REPLACE_WITH_CONTACT_EMAIL"><span class="todo">REPLACE_WITH_CONTACT_EMAIL</span></a>.</p>
+
+<h2>7. Cambios</h2>
+<p>Si esta política cambia, publicaremos la nueva versión en esta página con su fecha.</p>
+</section>
+
+<!-- ===================================================== DE -->
+<section id="de" lang="de">
+<h1>Datenschutzerklärung von Kitra</h1>
+<p class="meta">Zuletzt aktualisiert: 17. Oktober 2026 · App: Kitra (com.kettenki.kitra) · Verantwortlich: Kettenki · Kontakt: <a href="mailto:REPLACE_WITH_CONTACT_EMAIL"><span class="todo">REPLACE_WITH_CONTACT_EMAIL</span></a></p>
+
+<p>Kitra übersetzt den Text von Bildschirmfotos auf deinem Handy. Diese Erklärung beschreibt genau, welche Daten beteiligt sind und wohin sie gehen.</p>
+
+<h2>Das Wichtigste</h2>
+<ul>
+  <li>Kitra hat <strong>keine eigenen Server</strong>, keine Benutzerkonten, keine Werbung und keine eigenen Analysen.</li>
+  <li>Kitra <strong>speichert weder deine Bildschirmfotos noch deine Übersetzungen</strong>. Das Bild wird im Arbeitsspeicher des Handys verarbeitet und beim Schließen des Ergebnisfensters verworfen.</li>
+  <li>Kitra <strong>löscht, verschiebt oder verändert</strong> deine Bildschirmfotos nie.</li>
+</ul>
+
+<h2>1. Übersetzung mit deinem Gemini-Schlüssel</h2>
+<p>Wenn du deinen eigenen Gemini-API-Schlüssel einrichtest, sendet Kitra beim Tippen auf „Übersetzen“ das Bildschirmfoto <strong>direkt von deinem Handy an Google (Gemini API)</strong>, authentifiziert mit deinem Schlüssel. Es wird nur beim Tippen auf „Übersetzen“ und nur dieses Bildschirmfoto gesendet. Kitra ist kein Vermittler: Es läuft über keinen Kitra-Server.</p>
+<p>Die Nutzung der Gemini API unterliegt den <a href="https://ai.google.dev/gemini-api/terms">Nutzungsbedingungen der Gemini API</a> und der <a href="https://policies.google.com/privacy">Datenschutzerklärung von Google</a>. <strong>In der kostenlosen Stufe kann Google die gesendeten Inhalte und die Antworten zur Verbesserung seiner Produkte nutzen, und menschliche Prüfer können sie lesen.</strong> Mit aktivierter Abrechnung (kostenpflichtige Stufe) nutzt Google sie laut eigenen Angaben nicht dafür. Übersetze mit einem kostenlosen Schlüssel keine sensiblen Informationen.</p>
+<p>Dein Schlüssel wird <strong>verschlüsselt auf deinem Handy</strong> gespeichert (Android Keystore) und nur zur Authentifizierung deiner Übersetzungen an Google gesendet. Du kannst ihn jederzeit in den Kitra-Einstellungen entfernen.</p>
+
+<h2>2. Einfacher Modus (ohne Schlüssel oder offline)</h2>
+<p>Im einfachen Modus übersetzt Kitra direkt auf dem Handy mit Gemini Nano (falls dein Handy es unterstützt) oder mit ML Kit von Google. <strong>Das Bildschirmfoto und sein Text verlassen dein Handy nicht.</strong></p>
+<p>Dafür lädt der einfache Modus Sprachpakete und Texterkennungsmodelle von Google herunter. Die Google-Komponenten (ML Kit) senden <strong>technische Diagnosedaten</strong> an Google: Gerätemodell und Betriebssystem, App-Version, Leistungs- und Fehlerdaten, eingestellte oder erkannte Sprachen und eine Installationskennung, die dich nicht persönlich identifiziert. Das Bild oder der Text werden nie gesendet. Mehr dazu: <a href="https://developers.google.com/ml-kit/android-data-disclosure">Datenoffenlegung von ML Kit</a>.</p>
+
+<h2>3. Berechtigungen</h2>
+<ul>
+  <li><strong>Fotos und Bilder</strong> (nur in der Version mit automatischem Hinweis): um jedes neue Bildschirmfoto im Bildschirmfoto-Ordner zu erkennen und die Übersetzung anzubieten. Alle anderen Bilder ignoriert Kitra: Sie werden weder geöffnet noch gespeichert noch gesendet.</li>
+  <li>In der Version ohne Fotoberechtigung öffnet der Hinweis die Bildauswahl des Systems, und Kitra greift nur auf das gewählte Bild zu.</li>
+  <li><strong>Benachrichtigungen</strong>: um den Hinweis „Übersetzen“ anzuzeigen.</li>
+  <li><strong>Internet</strong>: um mit deinem Schlüssel zu übersetzen und Sprachpakete herunterzuladen.</li>
+</ul>
+
+<h2>4. Daten auf deinem Handy</h2>
+<p>Kitra speichert auf deinem Handy nur seine Einstellungen (Zielsprache, Präferenzen), deinen verschlüsselten Schlüssel und einen Diagnoseverlauf der letzten Übersetzungen (Zeit, genutzte Engine und Dauer, <strong>ohne Text oder Bilder</strong>), den du unter Erweitert → Diagnose löschen kannst. Beim Deinstallieren wird alles gelöscht. Kitra erstellt keine Cloud-Sicherungen.</p>
+
+<h2>5. Mindestalter</h2>
+<p>Kitra ist für Personen ab 18 Jahren bestimmt und richtet sich nicht an Minderjährige. Die Nutzungsbedingungen der Gemini API setzen ein Mindestalter von 18 Jahren voraus.</p>
+
+<h2>6. Deine Rechte und Kontakt</h2>
+<p>Kitra speichert keine personenbezogenen Daten von dir, daher gibt es auf eigenen Servern keine Daten, die wir einsehen, berichtigen oder löschen könnten. Für die von Google verarbeiteten Daten siehe die <a href="https://policies.google.com/privacy">Datenschutzerklärung von Google</a>. Bei Fragen zu dieser Erklärung schreib uns an <a href="mailto:REPLACE_WITH_CONTACT_EMAIL"><span class="todo">REPLACE_WITH_CONTACT_EMAIL</span></a>.</p>
+
+<h2>7. Änderungen</h2>
+<p>Wenn sich diese Erklärung ändert, veröffentlichen wir die neue Fassung mit Datum auf dieser Seite.</p>
+</section>
+
+<!-- ===================================================== EN -->
+<section id="en" lang="en">
+<h1>Kitra privacy policy</h1>
+<p class="meta">Last updated: 17 October 2026 · App: Kitra (com.kettenki.kitra) · Controller: Kettenki · Contact: <a href="mailto:REPLACE_WITH_CONTACT_EMAIL"><span class="todo">REPLACE_WITH_CONTACT_EMAIL</span></a></p>
+
+<p>Kitra translates the text in screenshots on your phone. This policy explains exactly which data is involved and where it goes.</p>
+
+<h2>Key points</h2>
+<ul>
+  <li>Kitra has <strong>no servers of its own</strong>, no user accounts, no ads and no analytics of its own.</li>
+  <li>Kitra <strong>does not store your screenshots or translations</strong>. The image is processed in the phone's memory and discarded when you close the result sheet.</li>
+  <li>Kitra <strong>never deletes, moves or modifies</strong> your screenshots.</li>
+</ul>
+
+<h2>1. Translation with your Gemini key</h2>
+<p>If you set up your own Gemini API key, when you tap “Translate” Kitra sends the screenshot <strong>directly from your phone to Google (Gemini API)</strong>, authenticated with your key. It is sent only when you tap “Translate” and only that screenshot. Kitra is not an intermediary: nothing goes through any Kitra server.</p>
+<p>Use of the Gemini API is governed by the <a href="https://ai.google.dev/gemini-api/terms">Gemini API Terms</a> and the <a href="https://policies.google.com/privacy">Google Privacy Policy</a>. <strong>On the free tier, Google may use the content you send and the responses to improve its products, and human reviewers may read them.</strong> With billing enabled (paid tier), Google states that it does not use them to improve its products. Do not translate sensitive information with a free key.</p>
+<p>Your key is stored <strong>encrypted on your phone</strong> (Android Keystore) and is only sent to Google to authenticate your translations. You can remove it at any time in Kitra's settings.</p>
+
+<h2>2. Basic mode (no key or offline)</h2>
+<p>In basic mode, Kitra translates on the phone itself with Gemini Nano (if your phone supports it) or with Google's ML Kit. <strong>The screenshot and its text never leave your phone.</strong></p>
+<p>To work, basic mode downloads language packs and text-recognition models from Google. Google's components (ML Kit) send <strong>technical diagnostic data</strong> to Google: device model and operating system, app version, performance metrics and error codes, configured or detected languages, and a per-installation identifier that does not identify you personally. They never send the image or the text. More information: <a href="https://developers.google.com/ml-kit/android-data-disclosure">ML Kit data disclosure</a>.</p>
+
+<h2>3. Permissions</h2>
+<ul>
+  <li><strong>Photos and images</strong> (only in the version with the automatic notice): to detect each new screenshot in the screenshots folder and offer to translate it. Kitra ignores every other image: it is never opened, stored or sent.</li>
+  <li>In the version without the photo permission, the notice opens the system photo picker and Kitra only accesses the image you choose.</li>
+  <li><strong>Notifications</strong>: to show the “Translate” notice.</li>
+  <li><strong>Internet</strong>: to translate with your key and to download language packs.</li>
+</ul>
+
+<h2>4. Data on your phone</h2>
+<p>Kitra only stores on your phone its settings (target language, preferences), your encrypted key and a diagnostics history of recent translations (time, engine used and timings, <strong>no text or images</strong>), which you can clear in Advanced → Diagnostics. Uninstalling Kitra deletes everything. Kitra does not make cloud backups.</p>
+
+<h2>5. Minimum age</h2>
+<p>Kitra is intended for people aged 18 and over and is not directed at minors. The Gemini API Terms require users to be at least 18 years old.</p>
+
+<h2>6. Your rights and contact</h2>
+<p>Kitra does not keep any of your personal data, so there is no data on servers of our own that we could access, correct or delete. For data processed by Google, see the <a href="https://policies.google.com/privacy">Google Privacy Policy</a>. For any question about this policy, write to <a href="mailto:REPLACE_WITH_CONTACT_EMAIL"><span class="todo">REPLACE_WITH_CONTACT_EMAIL</span></a>.</p>
+
+<h2>7. Changes</h2>
+<p>If this policy changes, we will publish the new version on this page with its date.</p>
+</section>
+</main>
+</body>
+</html>

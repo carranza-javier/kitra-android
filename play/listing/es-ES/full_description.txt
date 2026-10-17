@@ -1,0 +1,25 @@
+Kitra traduce cualquier texto que veas en la pantalla con el mínimo esfuerzo: haz una captura como siempre, pulsa «Traducir» en el aviso que aparece y lee la traducción en una ventana ligera encima de lo que estabas leyendo. Copia, cierra y sigue.
+
+Sin abrir otra app, sin copiar y pegar, sin seleccionar texto y sin elegir el idioma cada vez.
+
+CÓMO FUNCIONA
+• Haz una captura con los botones de siempre.
+• Aparece un aviso «Traducir» durante unos segundos.
+• Púlsalo: la traducción aparece al momento, párrafo a párrafo.
+• También puedes compartir cualquier imagen con Kitra desde la galería u otra app.
+
+TRADUCCIONES NATURALES
+Kitra funciona con tu clave gratuita de Gemini: la traducción entiende el contexto, las expresiones y el tono, e ignora los menús, botones, banners y barras de la pantalla. Ideal para leer prensa, mensajes, menús o webs en alemán, francés, italiano, inglés, chino y muchos otros idiomas.
+
+Conseguir la clave es gratis y lleva unos dos minutos: Kitra te guía en tres pasos y la detecta sola cuando la copias.
+
+MODO BÁSICO, SIN CLAVE
+¿Sin clave o sin conexión? Kitra traduce igualmente en tu teléfono con un modo básico. Es menos preciso, y Kitra siempre te avisa cuando lo usa.
+
+PRIVACIDAD
+• Con tu clave, la captura se envía directamente a Google solo cuando pulsas «Traducir». En el nivel gratuito, Google puede usar ese contenido para mejorar sus productos.
+• En modo básico, la captura y su texto no salen del teléfono.
+• Kitra no tiene servidores propios, ni cuentas, ni anuncios, ni analíticas, y no guarda tus capturas ni tus traducciones.
+• Kitra nunca borra, mueve ni modifica tus capturas.
+
+Kitra está disponible en español, alemán e inglés, y traduce a español, inglés, francés, alemán, italiano, portugués, catalán, neerlandés, polaco, japonés, chino y coreano.
