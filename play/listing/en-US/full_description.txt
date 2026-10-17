@@ -1,0 +1,25 @@
+Kitra translates any text on your screen with minimal effort: take a screenshot as usual, tap “Translate” on the notification that appears and read the translation in a lightweight sheet on top of what you were reading. Copy, close and carry on.
+
+No switching apps, no copying and pasting, no selecting text and no choosing the language every time.
+
+HOW IT WORKS
+• Take a screenshot with the usual buttons.
+• A “Translate” notification appears for a few seconds.
+• Tap it: the translation appears right away, paragraph by paragraph.
+• You can also share any image with Kitra from your gallery or another app.
+
+NATURAL TRANSLATIONS
+Kitra works with your free Gemini key: translations understand context, idioms and tone, and ignore the menus, buttons, banners and bars on the screen. Great for reading news, messages, menus or websites in German, French, Italian, Spanish, Chinese and many other languages.
+
+Getting the key is free and takes about two minutes: Kitra guides you in three steps and detects the key automatically when you copy it.
+
+BASIC MODE, NO KEY NEEDED
+No key or no connection? Kitra still translates on your phone with a basic mode. It is less accurate, and Kitra always tells you when it is being used.
+
+PRIVACY
+• With your key, the screenshot is sent directly to Google only when you tap “Translate”. On the free tier, Google may use that content to improve its products.
+• In basic mode, the screenshot and its text never leave your phone.
+• Kitra has no servers of its own, no accounts, no ads and no analytics, and it does not store your screenshots or translations.
+• Kitra never deletes, moves or modifies your screenshots.
+
+Kitra is available in English, Spanish and German, and translates into English, Spanish, French, German, Italian, Portuguese, Catalan, Dutch, Polish, Japanese, Chinese and Korean.

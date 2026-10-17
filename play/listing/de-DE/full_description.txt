@@ -1,0 +1,25 @@
+Kitra übersetzt jeden Text auf deinem Bildschirm mit minimalem Aufwand: Mach wie gewohnt ein Bildschirmfoto, tippe im Hinweis auf „Übersetzen“ und lies die Übersetzung in einem schlanken Fenster über dem, was du gerade liest. Kopieren, schließen, weiterlesen.
+
+Keine andere App öffnen, nichts kopieren und einfügen, keinen Text markieren und nicht jedes Mal die Sprache wählen.
+
+SO FUNKTIONIERT ES
+• Mach ein Bildschirmfoto mit den gewohnten Tasten.
+• Einige Sekunden lang erscheint ein Hinweis „Übersetzen“.
+• Tippe darauf: Die Übersetzung erscheint sofort, Absatz für Absatz.
+• Du kannst auch jedes Bild aus der Galerie oder einer anderen App mit Kitra teilen.
+
+NATÜRLICHE ÜBERSETZUNGEN
+Kitra funktioniert mit deinem kostenlosen Gemini-Schlüssel: Die Übersetzung versteht Kontext, Redewendungen und Tonfall und ignoriert Menüs, Schaltflächen, Banner und Leisten auf dem Bildschirm. Ideal für Zeitungen, Nachrichten, Speisekarten oder Websites auf Französisch, Italienisch, Englisch, Spanisch, Chinesisch und vielen anderen Sprachen.
+
+Der Schlüssel ist kostenlos und in etwa zwei Minuten eingerichtet: Kitra führt dich in drei Schritten durch und erkennt ihn automatisch, sobald du ihn kopierst.
+
+EINFACHER MODUS, OHNE SCHLÜSSEL
+Kein Schlüssel oder keine Verbindung? Kitra übersetzt trotzdem direkt auf deinem Handy im einfachen Modus. Er ist weniger genau, und Kitra weist dich immer darauf hin.
+
+DATENSCHUTZ
+• Mit deinem Schlüssel wird das Bildschirmfoto nur beim Tippen auf „Übersetzen“ direkt an Google gesendet. In der kostenlosen Stufe kann Google diese Inhalte zur Verbesserung seiner Produkte nutzen.
+• Im einfachen Modus verlassen das Bildschirmfoto und sein Text dein Handy nicht.
+• Kitra hat keine eigenen Server, keine Konten, keine Werbung und keine Analysen und speichert weder deine Bildschirmfotos noch deine Übersetzungen.
+• Kitra löscht, verschiebt oder verändert deine Bildschirmfotos nie.
+
+Kitra ist auf Deutsch, Spanisch und Englisch verfügbar und übersetzt ins Deutsche, Englische, Französische, Spanische, Italienische, Portugiesische, Katalanische, Niederländische, Polnische, Japanische, Chinesische und Koreanische.
