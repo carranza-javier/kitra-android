@@ -40,6 +40,8 @@ data class TranslateUiState(
     val basicReason: BasicModeReason? = null,
     @StringRes val error: Int? = null,
     val targetLanguageCode: String = "",
+    /** El selector de fotos del sistema está abierto: aún no hay nada que mostrar. */
+    val awaitingPick: Boolean = false,
 )
 
 class TranslateViewModel(app: Application) : AndroidViewModel(app) {
@@ -104,6 +106,12 @@ class TranslateViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
+    /** Variante «play»: se ha abierto el selector de fotos; la hoja no se muestra hasta tener imagen. */
+    fun awaitPick() {
+        currentUri = null
+        _state.value = TranslateUiState(awaitingPick = true)
+    }
+
     fun retry() {
         currentUri?.let { start(it, force = true) }
     }
@@ -129,6 +137,7 @@ class TranslateViewModel(app: Application) : AndroidViewModel(app) {
         is TranslationException.UnknownLanguage -> R.string.error_unknown_language
         is TranslationException.LanguageNotSupported -> R.string.error_language_not_supported
         is TranslationException.DownloadFailed -> R.string.error_download
+        is TranslationException.LanguageNotDownloaded -> R.string.error_language_not_downloaded
         else -> R.string.error_unknown
     }
 

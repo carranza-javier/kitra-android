@@ -13,11 +13,14 @@ import com.kettenki.kitra.core.ScreenText
 import com.kettenki.kitra.core.TranslationEvent
 import com.kettenki.kitra.core.TranslationException
 import com.kettenki.kitra.core.TranslationProvider
+import com.kettenki.kitra.net.Connectivity
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -70,10 +73,14 @@ class MlKitProvider(private val context: Context) : TranslationProvider {
 
         for (code in listOf(source, target.code)) {
             if (!LanguagePacks.isDownloaded(code)) {
+                // Sin conexión, ML Kit esperaría la descarga indefinidamente: mejor decirlo enseguida.
+                if (!Connectivity.isOnline(context)) throw TranslationException.LanguageNotDownloaded(code)
                 emit(TranslationEvent.Progress(ProgressStep.DownloadingLanguage(code)))
                 try {
                     // La traducción la ha pedido el usuario ahora: no se espera al wifi.
-                    LanguagePacks.download(code, wifiOnly = false)
+                    withTimeout(DOWNLOAD_TIMEOUT_MS) { LanguagePacks.download(code, wifiOnly = false) }
+                } catch (e: TimeoutCancellationException) {
+                    throw TranslationException.DownloadFailed(e)
                 } catch (e: Exception) {
                     if (e is CancellationException) throw e
                     throw TranslationException.DownloadFailed(e)
@@ -103,5 +110,8 @@ class MlKitProvider(private val context: Context) : TranslationProvider {
 
     private companion object {
         const val TAG = "Kitra"
+
+        /** Un paquete de ~30 MB tarda segundos con buena red; más de 3 minutos es que algo va mal. */
+        const val DOWNLOAD_TIMEOUT_MS = 180_000L
     }
 }

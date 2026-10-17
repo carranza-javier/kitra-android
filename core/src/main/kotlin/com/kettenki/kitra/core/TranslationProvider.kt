@@ -109,6 +109,9 @@ sealed class TranslationException(message: String, cause: Throwable? = null) : E
     /** El idioma detectado no tiene traducción local. */
     class LanguageNotSupported(val languageTag: String) : TranslationException("language_not_supported")
 
+    /** Sin conexión y el paquete de este idioma aún no está en el teléfono. */
+    class LanguageNotDownloaded(val languageTag: String) : TranslationException("language_not_downloaded")
+
     /** No se ha podido descargar un paquete de idioma o un modelo. */
     class DownloadFailed(cause: Throwable? = null) : TranslationException("download_failed", cause)
 

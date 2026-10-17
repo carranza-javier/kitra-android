@@ -42,6 +42,7 @@
     <string name="error_no_text">Im Bild wurde kein Text gefunden.</string>
     <string name="error_unknown_language">Die Sprache des Textes konnte nicht erkannt werden.</string>
     <string name="error_language_not_supported">Diese Sprache kann im einfachen Modus nicht übersetzt werden. Aktiviere Gemini, um sie zu übersetzen.</string>
+    <string name="error_language_not_downloaded">Keine Verbindung, und diese Sprache ist noch nicht auf dem Handy. Verbinde dich einmal mit dem Internet, um sie herunterzuladen.</string>
     <string name="error_download">Die zum Übersetzen nötigen Daten konnten nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.</string>
     <string name="welcome_title">Wähle, wie übersetzt wird</string>
     <string name="welcome_body">Mit deinem kostenlosen Gemini-Schlüssel übersetzt Kitra besonders genau: Es versteht Kontext, Redewendungen und Tonfall. Ohne Schlüssel nutzt Kitra einen einfachen Modus auf deinem Handy, die Übersetzungen können aber ungenau sein.</string>

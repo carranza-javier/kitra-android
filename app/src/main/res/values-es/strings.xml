@@ -42,6 +42,7 @@
     <string name="error_no_text">No se ha encontrado texto en la imagen.</string>
     <string name="error_unknown_language">No se ha podido reconocer el idioma del texto.</string>
     <string name="error_language_not_supported">Ese idioma no se puede traducir en modo básico. Activa Gemini para traducirlo.</string>
+    <string name="error_language_not_downloaded">No hay conexión y este idioma todavía no está en el teléfono. Conéctate a internet una vez para descargarlo.</string>
     <string name="error_download">No se ha podido descargar lo necesario para traducir. Comprueba la conexión e inténtalo de nuevo.</string>
     <string name="welcome_title">Elige cómo traducir</string>
     <string name="welcome_body">Con tu clave gratuita de Gemini, Kitra traduce con la máxima precisión: entiende el contexto, las expresiones y el tono. Sin clave, Kitra usa un modo básico que funciona en tu móvil, pero las traducciones pueden ser poco precisas.</string>

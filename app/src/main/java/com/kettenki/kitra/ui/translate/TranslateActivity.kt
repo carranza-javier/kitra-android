@@ -108,7 +108,10 @@ class TranslateActivity : ComponentActivity() {
     private fun handle(intent: Intent) {
         ScreenshotNotifier.dismiss(this)
         when (intent.action) {
-            ACTION_PICK_AND_TRANSLATE -> pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            ACTION_PICK_AND_TRANSLATE -> {
+                viewModel.awaitPick()
+                pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            }
             ACTION_TRANSLATE -> intent.data?.let(viewModel::start) ?: finish()
             Intent.ACTION_SEND -> IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
                 ?.let(viewModel::start) ?: finish()
@@ -167,6 +170,7 @@ private fun ResultSheet(
     onRetry: () -> Unit,
     onSetUpKey: () -> Unit,
 ) {
+    if (state.awaitingPick) return
     // Tocar fuera de la hoja cierra, igual que el botón Cerrar o el gesto Atrás.
     Box(
         Modifier
