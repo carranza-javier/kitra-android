@@ -46,7 +46,7 @@
             android:exported="true"
             android:excludeFromRecents="true"
             android:launchMode="singleTask"
-            android:taskAffinity="app.kitra.translate"
+            android:taskAffinity="com.kettenki.kitra.translate"
             android:theme="@style/Theme.Kitra.Overlay">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "app.kitra"
+    namespace = "com.kettenki.kitra"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "app.kitra"
+        applicationId = "com.kettenki.kitra"
         minSdk = 29
         targetSdk = 36
         versionCode = 1
