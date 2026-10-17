@@ -17,7 +17,28 @@ enum class Engine {
     GEMINI_CLOUD,
 
     /** Proveedor falso de las compilaciones de depuración. */
-    FAKE,
+    FAKE;
+
+    /** Motores del «modo básico»: traducen en el teléfono, sin Gemini en la nube. */
+    val isLocal: Boolean get() = this == GEMINI_NANO || this == ML_KIT
+}
+
+/** Por qué se está usando el modo básico (motor local) en vez de Gemini en la nube. */
+enum class BasicModeReason {
+    /** No hay clave de Gemini configurada: se anima a configurarla. */
+    NO_KEY,
+
+    /** Sin conexión a internet. */
+    OFFLINE,
+
+    /** Cuota de la clave agotada por ahora. */
+    QUOTA_EXCEEDED,
+
+    /** La clave ya no funciona (revocada, de un tipo que Google rechaza…): se anima a revisarla. */
+    KEY_INVALID,
+
+    /** Gemini ha fallado o no estaba disponible. */
+    CLOUD_FAILED,
 }
 
 /** Lo que va ocurriendo durante una traducción. */
@@ -33,6 +54,9 @@ sealed interface TranslationEvent {
 
     /** Aviso breve que acompaña al resultado. */
     data class Notice(val kind: NoticeKind) : TranslationEvent
+
+    /** Se está traduciendo en modo básico (motor local), por este motivo. */
+    data class BasicMode(val reason: BasicModeReason) : TranslationEvent
 }
 
 sealed interface ProgressStep {
@@ -45,9 +69,6 @@ sealed interface ProgressStep {
 enum class NoticeKind {
     /** El texto ya estaba en el idioma de destino: se muestra tal cual. */
     ALREADY_IN_TARGET,
-
-    /** No se pudo usar Gemini en la nube y se ha traducido en el dispositivo. */
-    CLOUD_FELL_BACK_TO_DEVICE,
 }
 
 /** Proveedor de traducción intercambiable. */
@@ -67,6 +88,9 @@ interface TranslationProvider {
 /** Errores comprensibles para el usuario. Los mensajes no contienen datos del usuario. */
 sealed class TranslationException(message: String, cause: Throwable? = null) : Exception(message, cause) {
     class InvalidKey : TranslationException("invalid_key")
+
+    /** Google rechaza este tipo de clave (p. ej. claves «AQ.» con ACCESS_TOKEN_TYPE_UNSUPPORTED). */
+    class KeyTypeUnsupported : TranslationException("key_type_unsupported")
     class QuotaExceeded : TranslationException("quota_exceeded")
     class Unavailable(val httpCode: Int?) : TranslationException("unavailable")
     class NoConnection(cause: Throwable? = null) : TranslationException("no_connection", cause)

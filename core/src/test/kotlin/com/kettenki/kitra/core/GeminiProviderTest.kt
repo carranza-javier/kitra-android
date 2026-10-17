@@ -104,6 +104,16 @@ class GeminiProviderTest {
     }
 
     @Test
+    fun rejectedKeyTypeIsMapped() = runTest {
+        // Error real que reportan las nuevas claves «AQ.» en el foro de Google (2026).
+        val body = """{"error":{"code":401,"message":"Expected OAuth 2 access token, login cookie or other valid authentication credential.",
+            "status":"UNAUTHENTICATED","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"ACCESS_TOKEN_TYPE_UNSUPPORTED"}]}}"""
+        assertThrows<TranslationException.KeyTypeUnsupported> {
+            provider(RecordingTransport { FakeResponse(401, body.lines()) }).verify()
+        }
+    }
+
+    @Test
     fun quotaIsMapped() = runTest {
         val body = """{"error":{"code":429,"message":"Quota exceeded","status":"RESOURCE_EXHAUSTED"}}"""
         assertThrows<TranslationException.QuotaExceeded> {

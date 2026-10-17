@@ -28,10 +28,13 @@ class Settings(context: Context) {
         get() = prefs.getString(KEY_MODEL, null)?.takeIf { it.isNotBlank() } ?: GeminiProvider.DEFAULT_MODEL
         set(value) = prefs.edit { putString(KEY_MODEL, value.trim().ifEmpty { null }) }
 
-    /** «Máxima calidad»: usar Gemini en la nube con la clave del usuario (opcional, en «Avanzado»). */
-    var cloudEnabled: Boolean
-        get() = prefs.getBoolean(KEY_CLOUD, false)
-        set(value) = prefs.edit { putBoolean(KEY_CLOUD, value) }
+    /** Si ya se mostró la pantalla de bienvenida («Elige cómo traducir»). */
+    var welcomeDone: Boolean
+        get() = prefs.getBoolean(KEY_WELCOME_DONE, false)
+        set(value) = prefs.edit { putBoolean(KEY_WELCOME_DONE, value) }
+
+    /** Últimas traducciones para la pantalla de diagnóstico: solo motor, motivo y tiempos, nunca contenido. */
+    val translationLog = TranslationLog(prefs)
 
     /** Solo depuración: fuerza un motor para comparar (null = elección automática). */
     var engineOverride: Engine?
@@ -65,7 +68,7 @@ class Settings(context: Context) {
         const val KEY_FAKE = "debug_fake_provider"
         const val KEY_LAST_ID = "last_notified_media_id"
         const val KEY_PERMS_PROMPTED = "permissions_prompted"
-        const val KEY_CLOUD = "cloud_enabled"
+        const val KEY_WELCOME_DONE = "welcome_done"
         const val KEY_ENGINE_OVERRIDE = "debug_engine_override"
         const val KEY_TARGET_PACK = "target_pack_requested"
     }

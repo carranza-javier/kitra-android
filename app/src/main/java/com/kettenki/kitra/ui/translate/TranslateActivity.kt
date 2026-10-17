@@ -9,6 +9,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -34,6 +36,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -49,30 +52,39 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.core.content.IntentCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kettenki.kitra.R
 import com.kettenki.kitra.TempFiles
+import com.kettenki.kitra.core.BasicModeReason
 import com.kettenki.kitra.core.Engine
 import com.kettenki.kitra.core.NoticeKind
 import com.kettenki.kitra.core.ProgressStep
 import com.kettenki.kitra.detect.ScreenshotNotifier
 import com.kettenki.kitra.ui.KitraTheme
+import com.kettenki.kitra.ui.setup.SetupActivity
 import kotlinx.coroutines.delay
 import java.util.Locale
 
 /**
  * Vista ligera de resultado: hoja inferior sobre la app anterior. La traducción empieza sola (SPEC §7).
- * Entradas: aviso de captura (ACTION_TRANSLATE) y compartir imágenes (ACTION_SEND).
+ * Entradas: aviso de captura (ACTION_TRANSLATE), compartir imágenes (ACTION_SEND) y, en la variante
+ * «play», el aviso que abre el selector de fotos del sistema (ACTION_PICK_AND_TRANSLATE).
  */
 class TranslateActivity : ComponentActivity() {
     private val viewModel: TranslateViewModel by viewModels()
 
+    /** Selector de fotos del sistema: no necesita permiso de fotos (variante «play»). */
+    private val pickImage = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) viewModel.start(uri) else finish()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        handle(intent)
+        if (savedInstanceState == null) handle(intent)
         setContent {
             KitraTheme {
                 val state by viewModel.state.collectAsStateWithLifecycle()
@@ -81,6 +93,7 @@ class TranslateActivity : ComponentActivity() {
                     onCopy = ::copy,
                     onClose = ::close,
                     onRetry = viewModel::retry,
+                    onSetUpKey = ::openKeyTutorial,
                 )
             }
         }
@@ -93,15 +106,14 @@ class TranslateActivity : ComponentActivity() {
     }
 
     private fun handle(intent: Intent) {
-        val uri = imageUri(intent) ?: run { finish(); return }
         ScreenshotNotifier.dismiss(this)
-        viewModel.start(uri)
-    }
-
-    private fun imageUri(intent: Intent): Uri? = when (intent.action) {
-        ACTION_TRANSLATE -> intent.data
-        Intent.ACTION_SEND -> IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
-        else -> null
+        when (intent.action) {
+            ACTION_PICK_AND_TRANSLATE -> pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            ACTION_TRANSLATE -> intent.data?.let(viewModel::start) ?: finish()
+            Intent.ACTION_SEND -> IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
+                ?.let(viewModel::start) ?: finish()
+            else -> finish()
+        }
     }
 
     private fun copy(text: String) {
@@ -109,7 +121,13 @@ class TranslateActivity : ComponentActivity() {
         clipboard.setPrimaryClip(ClipData.newPlainText(getString(R.string.app_name), text))
     }
 
-    /** Cierra, cancela la petición si sigue en curso y elimina los temporales. */
+    /** Lleva directamente al tutorial de la clave de Gemini. */
+    private fun openKeyTutorial() {
+        startActivity(SetupActivity.tutorialIntent(this))
+        close()
+    }
+
+    /** Cierra, cancela el trabajo si sigue en curso y elimina los temporales. */
     private fun close() {
         viewModel.cancel()
         TempFiles.clear(this)
@@ -126,11 +144,17 @@ class TranslateActivity : ComponentActivity() {
 
     companion object {
         const val ACTION_TRANSLATE = "com.kettenki.kitra.action.TRANSLATE"
+        const val ACTION_PICK_AND_TRANSLATE = "com.kettenki.kitra.action.PICK_AND_TRANSLATE"
 
         fun intentFor(context: Context, imageUri: Uri): Intent =
             Intent(context, TranslateActivity::class.java)
                 .setAction(ACTION_TRANSLATE)
                 .setData(imageUri)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+        fun pickIntent(context: Context): Intent =
+            Intent(context, TranslateActivity::class.java)
+                .setAction(ACTION_PICK_AND_TRANSLATE)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 }
@@ -141,6 +165,7 @@ private fun ResultSheet(
     onCopy: (String) -> Unit,
     onClose: () -> Unit,
     onRetry: () -> Unit,
+    onSetUpKey: () -> Unit,
 ) {
     // Tocar fuera de la hoja cierra, igual que el botón Cerrar o el gesto Atrás.
     Box(
@@ -163,6 +188,8 @@ private fun ResultSheet(
                     .navigationBarsPadding()
                     .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 12.dp),
             ) {
+                // Aviso visible del modo básico, antes del texto: el motor local es claramente secundario.
+                state.basicReason?.let { BasicModeBanner(it, onSetUpKey) }
                 Column(
                     Modifier
                         .weight(1f, fill = false)
@@ -212,6 +239,35 @@ private fun ResultSheet(
     }
 }
 
+/**
+ * «Traducción básica: puede ser imprecisa…». Sin clave o con la clave rota, invita a configurarla con un
+ * botón al tutorial. Sin conexión, sin cuota o con Gemini caído, explica el motivo sin pedir nada.
+ */
+@Composable
+private fun BasicModeBanner(reason: BasicModeReason, onSetUpKey: () -> Unit) {
+    val (message, action) = when (reason) {
+        BasicModeReason.NO_KEY -> R.string.basic_no_key to R.string.basic_action_set_up
+        BasicModeReason.KEY_INVALID -> R.string.basic_key_invalid to R.string.basic_action_fix_key
+        BasicModeReason.OFFLINE -> R.string.basic_offline to null
+        BasicModeReason.QUOTA_EXCEEDED -> R.string.basic_quota to null
+        BasicModeReason.CLOUD_FAILED -> R.string.basic_cloud_failed to null
+    }
+    Surface(
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.basic_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(message), style = MaterialTheme.typography.bodyMedium)
+            if (action != null) {
+                FilledTonalButton(onClick = onSetUpKey) { Text(stringResource(action)) }
+            }
+        }
+    }
+}
+
 @Composable
 private fun progressText(step: ProgressStep?): String = when (step) {
     ProgressStep.PreparingTextRecognition -> stringResource(R.string.progress_preparing_ocr)
@@ -223,12 +279,11 @@ private fun progressText(step: ProgressStep?): String = when (step) {
 @Composable
 private fun noticeText(kind: NoticeKind, targetCode: String): String = when (kind) {
     NoticeKind.ALREADY_IN_TARGET -> stringResource(R.string.notice_already_in_target, languageName(targetCode))
-    NoticeKind.CLOUD_FELL_BACK_TO_DEVICE -> stringResource(R.string.notice_cloud_fell_back)
 }
 
-/** Nombre del idioma en español ("alemán"), porque la interfaz de Kitra está en español. */
+/** Nombre de un idioma en el idioma de la interfaz ("alemán", "German", "Deutsch"). */
 internal fun languageName(code: String): String =
-    Locale.forLanguageTag(code).getDisplayLanguage(Locale.forLanguageTag("es"))
+    Locale.forLanguageTag(code).getDisplayLanguage(Locale.getDefault())
 
 @Composable
 private fun CopyButton(enabled: Boolean, onCopy: () -> Unit) {

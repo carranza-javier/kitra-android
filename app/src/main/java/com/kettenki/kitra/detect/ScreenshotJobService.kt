@@ -18,12 +18,21 @@ class ScreenshotJobService : JobService() {
         val started = SystemClock.elapsedRealtime()
         scope.launch {
             try {
-                if (Permissions.canDetect(this@ScreenshotJobService)) {
-                    ScreenshotDetector.findNewScreenshot(this@ScreenshotJobService)?.let { (id, uri) ->
-                        Settings(this@ScreenshotJobService).lastNotifiedMediaId = id
-                        ScreenshotNotifier.show(this@ScreenshotJobService, uri)
-                        // Solo métricas de tiempo; nunca contenido ni rutas de la captura.
-                        Log.i(TAG, "Screenshot notified in ${SystemClock.elapsedRealtime() - started} ms after job start")
+                val context = this@ScreenshotJobService
+                if (Permissions.canDetect(context)) {
+                    if (Permissions.broadPhotoAccess) {
+                        ScreenshotDetector.findNewScreenshot(context)?.let { (id, uri) ->
+                            Settings(context).lastNotifiedMediaId = id
+                            ScreenshotNotifier.show(context, uri)
+                            // Solo métricas de tiempo; nunca contenido ni rutas de la captura.
+                            Log.i(TAG, "Screenshot notified in ${SystemClock.elapsedRealtime() - started} ms after job start")
+                        }
+                    } else {
+                        ScreenshotDetector.newImageIdFromTrigger(context, params.triggeredContentUris)?.let { id ->
+                            Settings(context).lastNotifiedMediaId = id
+                            ScreenshotNotifier.show(context, imageUri = null)
+                            Log.i(TAG, "New image notified (picker mode) in ${SystemClock.elapsedRealtime() - started} ms after job start")
+                        }
                     }
                 }
             } catch (e: Exception) {

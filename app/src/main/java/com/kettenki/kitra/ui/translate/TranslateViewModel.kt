@@ -8,6 +8,7 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.kettenki.kitra.R
+import com.kettenki.kitra.core.BasicModeReason
 import com.kettenki.kitra.core.Engine
 import com.kettenki.kitra.core.NoticeKind
 import com.kettenki.kitra.core.ProgressStep
@@ -17,6 +18,7 @@ import com.kettenki.kitra.engine.Engines
 import com.kettenki.kitra.image.ImagePreprocessor
 import com.kettenki.kitra.image.ImageUnreadableException
 import com.kettenki.kitra.settings.Settings
+import com.kettenki.kitra.settings.TranslationLogEntry
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -34,6 +36,8 @@ data class TranslateUiState(
     /** Motor que ha producido (o está produciendo) el texto: decide la atribución. */
     val engine: Engine? = null,
     val notice: NoticeKind? = null,
+    /** Si se está usando el modo básico (motor local), por qué. */
+    val basicReason: BasicModeReason? = null,
     @StringRes val error: Int? = null,
     val targetLanguageCode: String = "",
 )
@@ -56,6 +60,7 @@ class TranslateViewModel(app: Application) : AndroidViewModel(app) {
         job = viewModelScope.launch {
             val started = SystemClock.elapsedRealtime()
             var firstTextLogged = false
+            var firstTextMs: Long? = null
             try {
                 val app = getApplication<Application>()
                 val image = withContext(Dispatchers.Default) { ImagePreprocessor(app.contentResolver).encode(uri) }
@@ -67,9 +72,11 @@ class TranslateViewModel(app: Application) : AndroidViewModel(app) {
                         is TranslationEvent.EngineStarted -> _state.update { it.copy(engine = event.engine, progress = null) }
                         is TranslationEvent.Progress -> _state.update { it.copy(progress = event.step) }
                         is TranslationEvent.Notice -> _state.update { it.copy(notice = event.kind) }
+                        is TranslationEvent.BasicMode -> _state.update { it.copy(basicReason = event.reason) }
                         is TranslationEvent.Text -> {
                             if (!firstTextLogged) {
                                 firstTextLogged = true
+                                firstTextMs = SystemClock.elapsedRealtime() - started
                                 Log.i(TAG, "First text after ${SystemClock.elapsedRealtime() - started} ms (${_state.value.engine})")
                             }
                             _state.update { it.copy(text = it.text + event.text, progress = null) }
@@ -78,13 +85,23 @@ class TranslateViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 Log.i(TAG, "Translation finished after ${SystemClock.elapsedRealtime() - started} ms (${_state.value.engine})")
                 _state.update { it.copy(text = it.text.trim(), inProgress = false, progress = null) }
+                logEntry(firstTextMs, SystemClock.elapsedRealtime() - started, error = null)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Translation failed: ${e.javaClass.simpleName}")
                 _state.update { it.copy(inProgress = false, progress = null, error = errorMessage(e)) }
+                logEntry(firstTextMs, SystemClock.elapsedRealtime() - started, error = e.javaClass.simpleName)
             }
         }
+    }
+
+    /** Registro para la pantalla de diagnóstico: motor, motivo y tiempos. Nunca texto ni imágenes. */
+    private fun logEntry(firstTextMs: Long?, totalMs: Long, error: String?) {
+        val state = _state.value
+        settings.translationLog.add(
+            TranslationLogEntry(System.currentTimeMillis(), state.engine, state.basicReason, firstTextMs, totalMs, error),
+        )
     }
 
     fun retry() {
@@ -100,6 +117,7 @@ class TranslateViewModel(app: Application) : AndroidViewModel(app) {
     private fun errorMessage(e: Exception): Int = when (e) {
         is ImageUnreadableException -> R.string.error_image
         is TranslationException.InvalidKey -> R.string.error_invalid_key
+        is TranslationException.KeyTypeUnsupported -> R.string.error_key_type_unsupported
         is TranslationException.QuotaExceeded -> R.string.error_quota
         is TranslationException.Unavailable -> R.string.error_unavailable
         is TranslationException.NoConnection -> R.string.error_no_connection

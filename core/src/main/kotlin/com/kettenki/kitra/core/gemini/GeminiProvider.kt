@@ -191,6 +191,8 @@ class GeminiProvider(
                 runCatching { details.jsonArray.mapNotNull { it.jsonObject["reason"]?.jsonPrimitive?.contentOrNull } }.getOrNull()
             }.orEmpty()
             return when {
+                // Problema conocido de las nuevas claves «AQ.» de AI Studio (foro de Google, 2026).
+                reasons.any { it == "ACCESS_TOKEN_TYPE_UNSUPPORTED" } -> TranslationException.KeyTypeUnsupported()
                 reasons.any { it == "API_KEY_INVALID" || it == "API_KEY_EXPIRED" } -> TranslationException.InvalidKey()
                 code == 401 || status == "UNAUTHENTICATED" -> TranslationException.InvalidKey()
                 code == 403 || status == "PERMISSION_DENIED" -> TranslationException.InvalidKey()

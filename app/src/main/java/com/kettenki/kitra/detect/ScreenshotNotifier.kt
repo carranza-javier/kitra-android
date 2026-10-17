@@ -34,8 +34,12 @@ object ScreenshotNotifier {
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
-    fun show(context: Context, imageUri: Uri) {
-        val intent = TranslateActivity.intentFor(context, imageUri)
+    /**
+     * Con [imageUri] (variante «full») el aviso traduce esa captura directamente.
+     * Sin ella (variante «play», sin permiso de fotos) abre el selector de fotos del sistema.
+     */
+    fun show(context: Context, imageUri: Uri?) {
+        val intent = if (imageUri != null) TranslateActivity.intentFor(context, imageUri) else TranslateActivity.pickIntent(context)
         val pending = PendingIntent.getActivity(
             context, 0, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
@@ -43,8 +47,8 @@ object ScreenshotNotifier {
         val translate = Notification.Action.Builder(null, context.getString(R.string.action_translate), pending).build()
         val notification = Notification.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(context.getString(R.string.notif_title))
-            .setContentText(context.getString(R.string.notif_text))
+            .setContentTitle(context.getString(if (imageUri != null) R.string.notif_title else R.string.notif_title_picker))
+            .setContentText(context.getString(if (imageUri != null) R.string.notif_text else R.string.notif_text_picker))
             .setContentIntent(pending) // pulsar el aviso entero también traduce
             .addAction(translate)
             .setAutoCancel(true)

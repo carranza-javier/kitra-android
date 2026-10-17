@@ -21,8 +21,8 @@ object ScreenshotDetector {
     /** Programa o cancela el job según la preferencia del usuario y los permisos. */
     fun sync(context: Context) {
         val settings = Settings(context)
-        if (settings.detectionEnabled && Permissions.mediaAccess(context) == MediaAccess.FULL) schedule(context)
-        else cancel(context)
+        val allowed = if (Permissions.broadPhotoAccess) Permissions.mediaAccess(context) == MediaAccess.FULL else true
+        if (settings.detectionEnabled && allowed) schedule(context) else cancel(context)
     }
 
     fun schedule(context: Context) {
@@ -44,6 +44,18 @@ object ScreenshotDetector {
 
     const val UPDATE_DELAY_MS = 200L
     const val MAX_DELAY_MS = 1_000L
+
+    /**
+     * Variante «play» (sin permiso de fotos): no se puede leer MediaStore, pero el job sí recibe las URI
+     * que han cambiado. Devuelve el id de la imagen nueva más reciente aún no avisada, o null.
+     */
+    fun newImageIdFromTrigger(context: Context, triggered: Array<Uri>?): Long? {
+        val last = Settings(context).lastNotifiedMediaId
+        return triggered.orEmpty()
+            .mapNotNull { it.lastPathSegment?.toLongOrNull() }
+            .filter { it > last }
+            .maxOrNull()
+    }
 
     /** Busca la captura más reciente aún no notificada. Devuelve su URI o null. */
     fun findNewScreenshot(context: Context, nowSeconds: Long = System.currentTimeMillis() / 1000): Pair<Long, Uri>? {
