@@ -41,6 +41,7 @@ object ScreenText {
     const val MAX_UI_WORDS = 3
 
     /** Texto corto aislado en la zona inferior: banners superpuestos (cookies, avisos), no contenido. */
+    const val SAME_SIZE_RATIO = 0.7
     const val MAX_BANNER_WORDS = 8
     const val BANNER_GAP_LINES = 3
 
@@ -94,9 +95,12 @@ object ScreenText {
     internal fun continuesParagraph(previous: OcrBlock, next: OcrBlock, imageWidth: Int): Boolean {
         val lineHeight = previous.lineHeight.coerceAtLeast(1)
         val gap = next.box.top - previous.box.bottom
-        val sameSize = abs(next.lineHeight - lineHeight) <= lineHeight * 0.25
+        // Una línea corta sin letras con trazos hacia abajo (p, g…) mide algo menos que las demás (≈0,72),
+        // mientras que un titular y el cuerpo difieren bastante más (40 px frente a 64 px ≈ 0,63).
+        val nextHeight = next.lineHeight.coerceAtLeast(1)
+        val sameSize = minOf(nextHeight, lineHeight).toDouble() / maxOf(nextHeight, lineHeight) >= SAME_SIZE_RATIO
         val aligned = abs(next.box.left - previous.box.left) <= imageWidth * 0.05
-        return gap in -lineHeight / 2..(lineHeight * 0.6).toInt() && sameSize && aligned
+        return gap in -lineHeight / 2..(lineHeight * 0.8).toInt() && sameSize && aligned
     }
 
     /** Une las líneas de un párrafo deshaciendo los guiones de corte de palabra. */

@@ -1,4 +1,4 @@
-"""Genera capturas de prueba (1080x2400) con texto ficticio en alemán, francés, italiano e inglés.
+"""Genera capturas de prueba (1080x2400) con texto ficticio en alemán, francés, italiano, inglés y chino.
 
 Incluyen barra de estado, botones y un banner de cookies para comprobar que Kitra ignora la interfaz.
 Sin datos personales. Uso: python generate_images.py
@@ -8,6 +8,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 FONT = "C:/Windows/Fonts/arial.ttf"
+FONT_ZH = "C:/Windows/Fonts/msyh.ttc"  # Microsoft YaHei
 OUT = Path(__file__).parent
 
 SAMPLES = {
@@ -35,13 +36,19 @@ SAMPLES = {
             "over the moon and plan to keep their prices as they are.",
             "", "Queues are expected this weekend."],
            "We use cookies. Accept all"),
+    "zh": ("城市晨报", "上海地铁新线提前三个月开通",
+           ["经过两年多的施工，这条连接浦东机场和市中心的新线路终于在周末投入运营。",
+            "市民们纷纷表示，以后上下班再也不用挤公交了。有乘客开玩笑说：“这下真是一举两得，既省时间又省钱。”",
+            "", "首班车将于每天早上五点半发车。"],
+           "我们使用Cookie。全部接受"),
 }
 
 
 def make(code, site, headline, body, cookie):
     img = Image.new("RGB", (1080, 2400), "white")
     d = ImageDraw.Draw(img)
-    small, mid, big, head = (ImageFont.truetype(FONT, s) for s in (34, 40, 46, 64))
+    font = FONT_ZH if code == "zh" else FONT
+    small, mid, big, head = (ImageFont.truetype(font, s) for s in (34, 40, 46, 64))
     # Barra de estado e interfaz que debe ignorarse.
     d.rectangle([0, 0, 1080, 90], fill="#202124")
     d.text((40, 25), "10:42", font=small, fill="white")
@@ -56,7 +63,15 @@ def make(code, site, headline, body, cookie):
         y += 80
     y += 40
     # Los párrafos se ajustan al ancho, como haría una app real (sin texto cortado en el borde).
-    for paragraph in " ".join(body).split("  "):
+    sep = "" if code == "zh" else " "  # el chino no lleva espacios entre frases
+    paragraphs, current = [], []
+    for line in body + [""]:
+        if line:
+            current.append(line)
+        elif current:
+            paragraphs.append(sep.join(current))
+            current = []
+    for paragraph in paragraphs:
         for line in wrap(paragraph, mid, d, 1000):
             d.text((40, y), line, font=mid, fill="#202124")
             y += 60
@@ -71,9 +86,11 @@ def make(code, site, headline, body, cookie):
 
 
 def wrap(text, font, draw, width):
-    words, lines, cur = text.split(), [], ""
+    # El chino no separa palabras con espacios: se corta carácter a carácter.
+    cjk = " " not in text.strip()
+    words, lines, cur = (list(text) if cjk else text.split()), [], ""
     for w in words:
-        test = f"{cur} {w}".strip()
+        test = (cur + w) if cjk else f"{cur} {w}".strip()
         if draw.textlength(test, font=font) <= width:
             cur = test
         else:

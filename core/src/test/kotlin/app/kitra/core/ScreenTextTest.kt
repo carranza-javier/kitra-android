@@ -54,6 +54,16 @@ class ScreenTextTest {
     }
 
     @Test
+    fun mergesShortLastLineWithSmallerBox() {
+        // Caso real del OCR (italiano): la última línea «fava»." sin trazos descendentes mide menos.
+        val blocks = listOf(
+            block(500, lineHeight = 46, lines = arrayOf("Il sindaco ha parlato di un risultato: «Abbiamo preso due piccioni con una")),
+            block(566, lineHeight = 33, lines = arrayOf("fava».")),
+        )
+        assertEquals(1, ScreenText.paragraphs(blocks, w, h).size)
+    }
+
+    @Test
     fun headlineAndBodyStaySeparate() {
         val blocks = listOf(
             block(300, lineHeight = 64, lines = arrayOf("Titular grande")),

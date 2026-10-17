@@ -62,3 +62,53 @@ Registro de decisiones tomadas durante la fase 1 (Android). Fecha: 17-10-2026.
 ## Direct Share
 
 - `shortcuts.xml` con `<share-target>` + un acceso directo dinámico de larga duración (`pushDynamicShortcut`). El sistema decide si lo muestra en la fila superior del menú de compartir según el uso.
+
+---
+
+# Fase 2: traducción en el dispositivo, sin clave (rama `feature/on-device-translation`)
+
+Fecha: 17-10-2026. Objetivo: que Kitra traduzca sin clave de API desde la primera vez que se abre. El flujo de captura → aviso → ventana de resultado no cambia.
+
+## Motores y selección automática
+
+| Orden | Motor | Cuándo se usa |
+|---|---|---|
+| 1 | **Gemini en la nube** (clave del usuario) | Solo si el usuario activa «Máxima calidad» en Avanzado y hay una clave válida. |
+| 2 | **Gemini Nano** (ML Kit GenAI Prompt API, con la captura como imagen) | Si `checkStatus()` devuelve `AVAILABLE`. |
+| 3 | **ML Kit**: OCR (Text Recognition v2) + identificación de idioma + traducción local | Siempre, en cualquier móvil. Es el último recurso. |
+
+- La lógica de selección y de recurso al siguiente motor vive en `:core` (`EngineSelection`, `FallbackTranslationProvider`) y tiene tests.
+- **Recurso automático, solo si aún no hay texto en pantalla:** cualquier fallo de Nano (cuota, batería, no disponible, imagen no válida, respuesta vacía) pasa a ML Kit sin molestar. En la nube solo se recurre al dispositivo si el fallo es de red, de cuota o del servicio, con el aviso «traducido en el dispositivo». Una clave inválida se muestra como error, porque es un problema de configuración que el usuario debe conocer.
+- `TranslationProvider` ahora emite eventos (`EngineStarted`, `Text`, `Progress`, `Notice`) en vez de solo texto, para poder mostrar descargas, avisos y la atribución del motor que realmente ha traducido.
+
+## Gemini Nano
+
+- `com.google.mlkit:genai-prompt:1.0.0-beta4` (beta, sin SLA). La API se ha comprobado con `javap` sobre las clases reales: `Generation.getClient(generationConfig { modelConfig { STABLE / FULL } })`, `checkStatus()`, `download()`, `generateContentStream(generateContentRequest(SystemInstruction, ImagePart, TextPart))`.
+- **Modelo STABLE + FULL:** se prioriza la calidad. `FAST` queda como ajuste para medir en el móvil.
+- `temperature 0.2`, `topK 16`, un solo candidato. Si el móvil no admite instrucciones de sistema (`isSystemPromptAvailable()`), las reglas van en el mismo turno que la imagen.
+- **Prompt:** versión corta del mismo prompt en `TranslationPrompt.onDeviceSystemInstruction()` (mismo archivo único). Un modelo pequeño sigue peor las instrucciones largas, y la entrada está limitada a unos 4000 tokens.
+- **Restricciones oficiales:** la inferencia solo se permite con la app en primer plano (la ventana de resultado lo está), hay una cuota por app y una cuota diaria de batería, y no funciona con el bootloader desbloqueado. Google solo valida oficialmente el **inglés y el coreano** para la Prompt API: la calidad al español hay que medirla en un móvil real.
+- **Descarga de Nano:** si el estado es `DOWNLOADABLE`, se descarga sola al abrir la configuración con wifi. Con datos móviles, solo desde el botón de Avanzado. Lo gestiona AICore y es compartido por todo el sistema.
+- **No probado en el emulador:** el emulador no tiene AICore (`checkStatus` → `UNAVAILABLE`, comprobado en el log).
+
+## ML Kit (motor universal)
+
+- **OCR sin agrupar** (`play-services-mlkit-text-recognition` + `-chinese`) e **identificación de idioma sin agrupar** (`play-services-mlkit-language-id`): los modelos los gestiona Google Play Services, no engordan el APK y Play los instala junto con la app (`com.google.mlkit.vision.DEPENDENCIES = ocr,ocr_chinese,langid`). En instalaciones sueltas (APK) se instalan con `ModuleInstallClient` al abrir la configuración, o en la primera traducción, mostrando «Preparando el reconocimiento de texto…».
+- **Dos reconocedores en paralelo** (latino y chino): el latino es el más preciso con acentos y ß, y el chino también lee CJK. Se usa el chino si al menos el 30 % de las letras son CJK. Así no hay que saber el idioma antes del OCR.
+- **Filtro de interfaz por posición y tamaño** (`ScreenText`, en `:core`, con tests): fuera la franja superior del 4,5 % (barra de estado) y la inferior del 4,5 % (navegación); los textos de 3 palabras o menos y una línea en el 12 % superior o el 25 % inferior (barras de herramientas, pestañas, botones); las etiquetas cortas pegadas a un lateral; los restos de iconos (2 caracteres o menos), y los **textos cortos (8 palabras o menos) en la zona inferior separados del contenido por un hueco de más de 3 líneas** (banners superpuestos, como el de cookies). No se usan listas de palabras clave, como pedía la tarea.
+- **Párrafos:** bloques ordenados de arriba abajo. Un bloque se une al anterior si está a menos de 0,6 líneas, alineado (±5 % del ancho) y con la misma altura de letra (±25 %). Se deshacen los guiones de corte de palabra y el chino se une sin espacios. Cada párrafo se traduce por separado y se muestra en cuanto está listo, como un streaming por párrafos.
+- **Idioma:** se identifica el idioma dominante de todo el texto. Si coincide con el de destino, se muestra el texto con el aviso «El texto ya está en español». Las páginas con varios idiomas se traducen según el dominante (limitación conocida).
+- **Paquetes de idioma (unos 30 MB cada uno):** el del idioma de destino se pide en la configuración inicial con `requireWifi()`. Si no hay wifi, la pantalla lo dice y ofrece «Descargar ahora con datos». Los de origen se descargan sin esperar al wifi la primera vez que se detectan, porque el usuario acaba de pedir la traducción, mostrando «Descargando el idioma alemán (unos 30 MB, solo la primera vez)…» en la ventana de resultado. Se pueden borrar en Avanzado → «Idiomas descargados». El inglés viene incluido y ni se descarga ni se borra.
+- **Atribución obligatoria:** se muestra la insignia oficial «powered by Google Translate» (descargada del zip oficial de Google Cloud, en color con tema claro y en blanco con tema oscuro) **junto al resultado, solo cuando ha traducido ML Kit**. El aviso legal de Google (*THIS SERVICE MAY CONTAIN TRANSLATIONS POWERED BY GOOGLE…*) está en Avanzado → «Aviso legal de la traducción». Con Nano y con Gemini en la nube no se muestra nada, porque la SPEC pide no mostrar información de Gemini en cada traducción.
+
+## Tamaño de la app
+
+- La traducción local de ML Kit añade unos **16 MB de código nativo por arquitectura**. El APK universal de release pasaba de 2,3 a 67 MB.
+- **Solución:** Play (AAB) ya entrega a cada móvil solo su arquitectura. Para los APK sueltos se generan **APK por arquitectura** (arm64-v8a 20,5 MB, armeabi-v7a 15,7 MB, x86_64 21,5 MB), y se deja fuera x86 de 32 bits (solo emuladores antiguos). Como AGP no permite APK por arquitectura y AAB en la misma ejecución (issuetracker 402800800), la división se desactiva automáticamente al ejecutar `bundle*`.
+
+## Configuración inicial sin clave
+
+- Primera apertura: se piden los permisos automáticamente, se pide el paquete del idioma de destino (con wifi), se instalan los modelos de OCR y, si el móvil tiene Nano descargable y hay wifi, se descarga Nano. El usuario solo elige el idioma (por defecto, el del sistema) y acepta los permisos.
+- La clave de Gemini pasa a Avanzado → «Máxima calidad: Gemini en la nube», junto al campo del modelo. La clave se sigue guardando cifrada con Keystore y solo si la prueba de conexión pasa.
+- **Privacidad:** el texto dice que, con los motores locales, la captura no sale del móvil; que solo se descargan paquetes de idioma y modelos, y que el modo en la nube envía la imagen a Google (con el aviso del nivel gratuito).
+- Solo en depuración: `adb shell am start -n app.kitra/.ui.setup.SetupActivity --es debug_engine mlkit|nano|cloud|auto` fuerza un motor para las comparativas.
