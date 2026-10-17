@@ -2,10 +2,10 @@
 
 Traduce cualquier texto de la pantalla del móvil con **captura nativa + una pulsación**. Haz una captura con los botones de siempre, pulsa «Traducir» en el aviso y lee la traducción, hecha con Gemini, en una hoja ligera. Copia, cierra y sigue leyendo.
 
-- Sin cuentas, sin servidor y sin analíticas. Cada usuario usa su propia clave de Gemini API.
+- Sin cuentas, sin servidor y sin analíticas. **Sin clave:** traduce en el propio teléfono (Gemini Nano si el móvil lo tiene; si no, ML Kit). Opcionalmente, «Máxima calidad» con Gemini en la nube y tu propia clave.
 - Las capturas nunca se borran, mueven ni modifican. La imagen solo se envía a Google cuando pulsas «Traducir».
 
-Estado: **fase 1 (Android)**. La especificación está en [`SPEC.md`](SPEC.md) y las decisiones en [`docs/DECISIONES.md`](docs/DECISIONES.md).
+Estado: **fase 1 (Android)** en `main`; **fase 2 (traducción en el dispositivo)** en la rama `feature/on-device-translation` (ver [`docs/INFORME-FASE2.md`](docs/INFORME-FASE2.md)). La especificación está en [`SPEC.md`](SPEC.md) y las decisiones en [`docs/DECISIONES.md`](docs/DECISIONES.md).
 
 ## Estructura
 
@@ -19,7 +19,15 @@ testdata/  Capturas de prueba ficticias (de, fr, it, en) y el script que las gen
 
 El prompt de traducción está en un único archivo: `core/src/main/kotlin/app/kitra/core/TranslationPrompt.kt`.
 
-## 1. Obtener una clave de Gemini API
+## Motores de traducción (fase 2)
+
+| Motor | Cuándo | Calidad | Privacidad |
+|---|---|---|---|
+| Gemini Nano (en el teléfono) | Automático si el móvil lo tiene (Pixel 9+, Galaxy S25+…) | Por medir en un móvil real | La captura no sale del móvil |
+| ML Kit (en el teléfono) | Automático en cualquier otro móvil con Google Play Services | Literal: falla en expresiones y contexto | La captura no sale del móvil |
+| Gemini en la nube | Solo si activas «Máxima calidad» en Avanzado y pones tu clave | La mejor | La captura se envía a Google |
+
+## 1. (Opcional) Obtener una clave de Gemini API para «Máxima calidad»
 
 1. Entra en <https://aistudio.google.com/apikey> con tu cuenta de Google.
 2. Pulsa **Create API key** y cópiala.
@@ -34,22 +42,22 @@ Requisitos: JDK 17 o posterior y el Android SDK con la plataforma 37 (`sdkmanage
 
 ```bash
 ./gradlew test            # tests unitarios
-./gradlew assembleDebug   # APK de depuración: app/build/outputs/apk/debug/app-debug.apk
+./gradlew assembleDebug   # un APK por arquitectura: app/build/outputs/apk/debug/app-arm64-v8a-debug.apk, …
+./gradlew bundleRelease   # AAB para Google Play
 ```
 
 ## 3. Instalar en el móvil
 
 1. En el móvil, activa **Opciones de desarrollador → Depuración USB** y conéctalo por USB.
-2. `adb install -r app/build/outputs/apk/debug/app-debug.apk`
+2. `adb install -r app/build/outputs/apk/debug/app-arm64-v8a-debug.apk` (casi todos los móviles actuales son arm64)
 
 También puedes copiar el APK al móvil y abrirlo (habrá que permitir instalar apps desconocidas).
 
 ## 4. Configurar (una sola vez)
 
-1. Abre **Kitra**.
-2. Pega tu clave y pulsa **Guardar y probar**.
-3. Acepta los permisos que se piden a continuación: **Fotos y vídeos → «Permitir todo»** (solo para detectar capturas nuevas) y **Notificaciones**.
-4. Elige el idioma de destino (por defecto, el del sistema).
+1. Abre **Kitra**: se piden los permisos solos. Acepta **Notificaciones** y **Fotos y vídeos → «Permitir todo»** (solo para detectar capturas nuevas).
+2. Elige el idioma de destino (por defecto, el del sistema). Su paquete (unos 30 MB) se descarga solo, preferiblemente con wifi.
+3. Ya está: no hace falta clave. Para usar Gemini en la nube: **Avanzado → Máxima calidad**, pega tu clave y pulsa **Guardar y probar**.
 
 ## 5. Usar
 
@@ -59,7 +67,7 @@ También puedes copiar el APK al móvil y abrirlo (habrá que permitir instalar 
 ## Probar en el emulador (desarrollo)
 
 ```bash
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/debug/app-x86_64-debug.apk
 # Proveedor falso (solo debug), para probar sin clave:
 adb shell am start -n app.kitra/.ui.setup.SetupActivity --ez debug_fake_provider true
 adb shell pm grant app.kitra android.permission.READ_MEDIA_IMAGES
@@ -73,5 +81,7 @@ adb push testdata/screenshot_de.png /sdcard/Download/
 adb shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Download/screenshot_de.png
 adb shell am start -a android.intent.action.SEND -t image/png \
   --eu android.intent.extra.STREAM content://media/external/images/media/<ID> -n app.kitra/.ui.translate.TranslateActivity
-adb logcat -s Kitra   # solo tiempos y tamaños, nunca contenido
+adb logcat -s Kitra   # solo tiempos, tamaños y motor, nunca contenido
+# Forzar un motor para comparar (solo debug): nano | mlkit | cloud | auto
+adb shell am start -S -n app.kitra/.ui.setup.SetupActivity --es debug_engine mlkit
 ```

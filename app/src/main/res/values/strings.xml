@@ -41,7 +41,6 @@
 
     <!-- Configuración -->
     <string name="setup_tagline">Haz una captura y pulsa «Traducir». Nada más. Sin cuentas ni claves: traduce en tu teléfono.</string>
-    <string name="setup_key_title">Clave de Gemini API</string>
     <string name="setup_key_desc">Usa tu propia clave de Gemini API. Se guarda cifrada en este teléfono y solo se envía a Google.</string>
     <string name="setup_key_get">Obtener una clave en Google AI Studio</string>
     <string name="setup_key_hint">Pega aquí tu clave</string>
