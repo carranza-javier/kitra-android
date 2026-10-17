@@ -9,3 +9,6 @@ captures/
 # Documentation stays local: only README.md is versioned.
 *.md
 !README.md
+
+# Release artifacts (signed AABs, R8 mappings) stay out of git.
+play/release/

@@ -91,7 +91,8 @@ class TranslateViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Log.w(TAG, "Translation failed: ${e.javaClass.simpleName}")
+                // Solo nombres de clase (error y causa), nunca mensajes ni contenido.
+                Log.w(TAG, "Translation failed: ${e.javaClass.simpleName}" + (e.cause?.let { " (cause: ${it.javaClass.name})" } ?: ""))
                 _state.update { it.copy(inProgress = false, progress = null, error = errorMessage(e)) }
                 logEntry(firstTextMs, SystemClock.elapsedRealtime() - started, error = e.javaClass.simpleName)
             }
