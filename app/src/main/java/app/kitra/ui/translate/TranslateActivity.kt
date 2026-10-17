@@ -10,6 +10,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -45,16 +47,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.core.content.IntentCompat
 import app.kitra.R
 import app.kitra.TempFiles
+import app.kitra.core.Engine
+import app.kitra.core.NoticeKind
+import app.kitra.core.ProgressStep
 import app.kitra.detect.ScreenshotNotifier
 import app.kitra.ui.KitraTheme
-import app.kitra.ui.setup.SetupActivity
 import kotlinx.coroutines.delay
+import java.util.Locale
 
 /**
  * Vista ligera de resultado: hoja inferior sobre la app anterior. La traducción empieza sola (SPEC §7).
@@ -75,10 +81,6 @@ class TranslateActivity : ComponentActivity() {
                     onCopy = ::copy,
                     onClose = ::close,
                     onRetry = viewModel::retry,
-                    onSetup = {
-                        startActivity(Intent(this, SetupActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                        close()
-                    },
                 )
             }
         }
@@ -139,7 +141,6 @@ private fun ResultSheet(
     onCopy: (String) -> Unit,
     onClose: () -> Unit,
     onRetry: () -> Unit,
-    onSetup: () -> Unit,
 ) {
     // Tocar fuera de la hoja cierra, igual que el botón Cerrar o el gesto Atrás.
     Box(
@@ -168,8 +169,8 @@ private fun ResultSheet(
                         .heightIn(min = 96.dp)
                         .verticalScroll(rememberScrollState()),
                 ) {
+                    state.notice?.let { Message(noticeText(it, state.targetLanguageCode)) }
                     when {
-                        state.needsSetup -> Message(stringResource(R.string.needs_setup))
                         state.error != null -> {
                             if (state.text.isNotEmpty()) TranslatedText(state.text)
                             Message(stringResource(state.error), isError = true)
@@ -177,10 +178,18 @@ private fun ResultSheet(
                         state.text.isEmpty() -> Row(verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                             Spacer(Modifier.width(12.dp))
-                            Text(stringResource(R.string.translating), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(progressText(state.progress), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         else -> TranslatedText(state.text)
                     }
+                }
+                // Atribución obligatoria de la traducción local de ML Kit, junto al resultado.
+                if (state.engine == Engine.ML_KIT && state.text.isNotEmpty()) {
+                    Image(
+                        painter = painterResource(R.drawable.gt_attribution),
+                        contentDescription = stringResource(R.string.attribution_google_translate),
+                        modifier = Modifier.padding(top = 12.dp).height(16.dp),
+                    )
                 }
                 Spacer(Modifier.padding(top = 12.dp))
                 Row(
@@ -193,7 +202,6 @@ private fun ResultSheet(
                         Spacer(Modifier.weight(1f))
                     }
                     when {
-                        state.needsSetup -> Button(onClick = onSetup) { Text(stringResource(R.string.open_settings)) }
                         state.error != null -> OutlinedButton(onClick = onRetry) { Text(stringResource(R.string.retry)) }
                         else -> CopyButton(enabled = state.text.isNotEmpty(), onCopy = { onCopy(state.text) })
                     }
@@ -203,6 +211,24 @@ private fun ResultSheet(
         }
     }
 }
+
+@Composable
+private fun progressText(step: ProgressStep?): String = when (step) {
+    ProgressStep.PreparingTextRecognition -> stringResource(R.string.progress_preparing_ocr)
+    ProgressStep.RecognizingText -> stringResource(R.string.progress_recognizing)
+    is ProgressStep.DownloadingLanguage -> stringResource(R.string.progress_downloading_language, languageName(step.languageCode))
+    ProgressStep.Translating, null -> stringResource(R.string.translating)
+}
+
+@Composable
+private fun noticeText(kind: NoticeKind, targetCode: String): String = when (kind) {
+    NoticeKind.ALREADY_IN_TARGET -> stringResource(R.string.notice_already_in_target, languageName(targetCode))
+    NoticeKind.CLOUD_FELL_BACK_TO_DEVICE -> stringResource(R.string.notice_cloud_fell_back)
+}
+
+/** Nombre del idioma en español ("alemán"), porque la interfaz de Kitra está en español. */
+internal fun languageName(code: String): String =
+    Locale.forLanguageTag(code).getDisplayLanguage(Locale.forLanguageTag("es"))
 
 @Composable
 private fun CopyButton(enabled: Boolean, onCopy: () -> Unit) {

@@ -72,6 +72,25 @@ class ScreenTextTest {
     }
 
     @Test
+    fun dropsIsolatedBannerAtTheBottom() {
+        val blocks = listOf(
+            block(500, lines = arrayOf("Die Stadt Zürich plant, ihr Velonetz massiv auszubauen.")),
+            block(2000, lines = arrayOf("Wir verwenden Cookies. Alle akzeptieren")), // banner con hueco enorme encima
+        )
+        assertEquals(listOf("Die Stadt Zürich plant, ihr Velonetz massiv auszubauen."), ScreenText.paragraphs(blocks, w, h))
+    }
+
+    @Test
+    fun keepsBottomTextThatContinuesTheArticle() {
+        // Pantalla llena de texto: el último párrafo, corto y abajo, sigue al anterior con el espaciado normal.
+        val blocks = listOf(
+            block(1700, lines = arrayOf("Un párrafo largo del artículo que llega casi hasta abajo", "y ocupa varias líneas de la pantalla.")),
+            block(1900, lines = arrayOf("La decisión llegará en primavera.")),
+        )
+        assertEquals(2, ScreenText.paragraphs(blocks, w, h).size)
+    }
+
+    @Test
     fun shortTextInMiddleIsKept() {
         assertTrue(ScreenText.isContent(block(1200, lines = arrayOf("Hola mundo")), w, h))
     }

@@ -9,8 +9,16 @@ import androidx.core.graphics.drawable.IconCompat
 import app.kitra.detect.ScreenshotDetector
 import app.kitra.detect.ScreenshotNotifier
 import app.kitra.ui.setup.SetupActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 class KitraApp : Application() {
+    companion object {
+        /** Trabajo que debe seguir aunque se cierre la pantalla (descarga de paquetes de idioma). */
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    }
+
     override fun onCreate() {
         super.onCreate()
         ScreenshotNotifier.createChannel(this)

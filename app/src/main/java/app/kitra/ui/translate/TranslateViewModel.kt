@@ -7,9 +7,13 @@ import android.util.Log
 import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import app.kitra.ProviderFactory
 import app.kitra.R
+import app.kitra.core.Engine
+import app.kitra.core.NoticeKind
+import app.kitra.core.ProgressStep
+import app.kitra.core.TranslationEvent
 import app.kitra.core.TranslationException
+import app.kitra.engine.Engines
 import app.kitra.image.ImagePreprocessor
 import app.kitra.image.ImageUnreadableException
 import app.kitra.settings.Settings
@@ -26,8 +30,12 @@ import kotlinx.coroutines.withContext
 data class TranslateUiState(
     val text: String = "",
     val inProgress: Boolean = false,
+    val progress: ProgressStep? = null,
+    /** Motor que ha producido (o está produciendo) el texto: decide la atribución. */
+    val engine: Engine? = null,
+    val notice: NoticeKind? = null,
     @StringRes val error: Int? = null,
-    val needsSetup: Boolean = false,
+    val targetLanguageCode: String = "",
 )
 
 class TranslateViewModel(app: Application) : AndroidViewModel(app) {
@@ -38,38 +46,43 @@ class TranslateViewModel(app: Application) : AndroidViewModel(app) {
     private var currentUri: Uri? = null
     private var job: Job? = null
 
-    /** Empieza a traducir. Ignora repeticiones para la misma imagen (no hay llamadas duplicadas). */
+    /** Empieza a traducir. Ignora repeticiones para la misma imagen (no hay trabajo duplicado). */
     fun start(uri: Uri, force: Boolean = false) {
         if (!force && uri == currentUri) return
         currentUri = uri
         job?.cancel()
-        val provider = ProviderFactory.create(settings)
-        if (provider == null) {
-            _state.value = TranslateUiState(needsSetup = true)
-            return
-        }
-        _state.value = TranslateUiState(inProgress = true)
+        val target = settings.targetLanguage
+        _state.value = TranslateUiState(inProgress = true, targetLanguageCode = target.code)
         job = viewModelScope.launch {
             val started = SystemClock.elapsedRealtime()
-            var firstChunkLogged = false
+            var firstTextLogged = false
             try {
-                val image = withContext(Dispatchers.Default) { ImagePreprocessor(getApplication<Application>().contentResolver).encode(uri) }
+                val app = getApplication<Application>()
+                val image = withContext(Dispatchers.Default) { ImagePreprocessor(app.contentResolver).encode(uri) }
                 // Solo métricas (tamaño y tiempos), nunca el contenido.
                 Log.i(TAG, "Image encoded: ${image.bytes.size / 1024} KB in ${SystemClock.elapsedRealtime() - started} ms")
-                provider.translate(image, settings.targetLanguage).collect { chunk ->
-                    if (!firstChunkLogged) {
-                        firstChunkLogged = true
-                        Log.i(TAG, "First text after ${SystemClock.elapsedRealtime() - started} ms")
+                val provider = Engines.create(app, settings)
+                provider.translate(image, target).collect { event ->
+                    when (event) {
+                        is TranslationEvent.EngineStarted -> _state.update { it.copy(engine = event.engine, progress = null) }
+                        is TranslationEvent.Progress -> _state.update { it.copy(progress = event.step) }
+                        is TranslationEvent.Notice -> _state.update { it.copy(notice = event.kind) }
+                        is TranslationEvent.Text -> {
+                            if (!firstTextLogged) {
+                                firstTextLogged = true
+                                Log.i(TAG, "First text after ${SystemClock.elapsedRealtime() - started} ms (${_state.value.engine})")
+                            }
+                            _state.update { it.copy(text = it.text + event.text, progress = null) }
+                        }
                     }
-                    _state.update { it.copy(text = it.text + chunk.text) }
                 }
-                Log.i(TAG, "Translation finished after ${SystemClock.elapsedRealtime() - started} ms")
-                _state.update { it.copy(text = it.text.trim(), inProgress = false) }
+                Log.i(TAG, "Translation finished after ${SystemClock.elapsedRealtime() - started} ms (${_state.value.engine})")
+                _state.update { it.copy(text = it.text.trim(), inProgress = false, progress = null) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Translation failed: ${e.javaClass.simpleName}")
-                _state.update { it.copy(inProgress = false, error = errorMessage(e)) }
+                _state.update { it.copy(inProgress = false, progress = null, error = errorMessage(e)) }
             }
         }
     }
@@ -78,7 +91,7 @@ class TranslateViewModel(app: Application) : AndroidViewModel(app) {
         currentUri?.let { start(it, force = true) }
     }
 
-    /** Cerrar mientras traduce cancela la petición en curso. */
+    /** Cerrar mientras traduce cancela el trabajo en curso. */
     fun cancel() {
         job?.cancel()
         job = null
@@ -94,6 +107,10 @@ class TranslateViewModel(app: Application) : AndroidViewModel(app) {
         is TranslationException.Blocked -> R.string.error_blocked
         is TranslationException.EmptyResponse -> R.string.error_empty
         is TranslationException.ImageTooLarge -> R.string.error_too_large
+        is TranslationException.NoTextFound -> R.string.error_no_text
+        is TranslationException.UnknownLanguage -> R.string.error_unknown_language
+        is TranslationException.LanguageNotSupported -> R.string.error_language_not_supported
+        is TranslationException.DownloadFailed -> R.string.error_download
         else -> R.string.error_unknown
     }
 

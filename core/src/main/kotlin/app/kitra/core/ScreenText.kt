@@ -40,9 +40,14 @@ object ScreenText {
     /** Un texto con estas palabras o menos, en esas zonas, se considera interfaz. */
     const val MAX_UI_WORDS = 3
 
+    /** Texto corto aislado en la zona inferior: banners superpuestos (cookies, avisos), no contenido. */
+    const val MAX_BANNER_WORDS = 8
+    const val BANNER_GAP_LINES = 3
+
     fun paragraphs(blocks: List<OcrBlock>, imageWidth: Int, imageHeight: Int): List<String> {
         val content = blocks.filter { isContent(it, imageWidth, imageHeight) }
             .sortedWith(compareBy({ it.box.top }, { it.box.left }))
+            .let { dropIsolatedBottomBanners(it, imageHeight) }
         val paragraphs = mutableListOf<MutableList<OcrBlock>>()
         for (block in content) {
             val current = paragraphs.lastOrNull()
@@ -66,6 +71,23 @@ object ScreenText {
         val nearSide = box.left <= imageWidth * 0.02 || box.right >= imageWidth * 0.98
         if (short && nearSide && box.width < imageWidth * 0.25) return false
         return true
+    }
+
+    /**
+     * En un artículo, el texto de la parte baja sigue al párrafo anterior con el espaciado normal.
+     * Un texto corto en la zona inferior separado por un hueco grande es un elemento superpuesto.
+     */
+    internal fun dropIsolatedBottomBanners(sorted: List<OcrBlock>, imageHeight: Int): List<OcrBlock> {
+        val kept = mutableListOf<OcrBlock>()
+        for (block in sorted) {
+            val inBottomZone = block.box.top >= imageHeight * (1 - BOTTOM_CHROME_FRACTION)
+            val previous = kept.lastOrNull()
+            val gap = if (previous == null) block.box.top else block.box.top - previous.box.bottom
+            val isolated = gap > BANNER_GAP_LINES * block.lineHeight.coerceAtLeast(1)
+            if (inBottomZone && block.wordCount <= MAX_BANNER_WORDS && isolated) continue
+            kept += block
+        }
+        return kept
     }
 
     /** El bloque siguiente continúa el párrafo si está muy cerca, alineado y con el mismo tamaño de letra. */

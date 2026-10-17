@@ -16,7 +16,12 @@
     <string name="close">Cerrar</string>
     <string name="retry">Reintentar</string>
     <string name="open_settings">Abrir configuración</string>
-    <string name="needs_setup">Configura tu clave de Gemini API para empezar a traducir.</string>
+    <string name="progress_preparing_ocr">Preparando el reconocimiento de texto (solo la primera vez)…</string>
+    <string name="progress_recognizing">Leyendo la captura…</string>
+    <string name="progress_downloading_language">Descargando el idioma %1$s (unos 30 MB, solo la primera vez)…</string>
+    <string name="notice_already_in_target">El texto ya está en %1$s.</string>
+    <string name="notice_cloud_fell_back">Gemini en la nube no estaba disponible: traducido en el dispositivo.</string>
+    <string name="attribution_google_translate">Con la tecnología de Google Translate</string>
 
     <!-- Errores -->
     <string name="error_invalid_key">La clave de Gemini API no es válida o no tiene permiso. Revísala en la configuración de Kitra.</string>
@@ -29,11 +34,15 @@
     <string name="error_too_large">La imagen es demasiado grande para enviarla.</string>
     <string name="error_image">No se ha podido abrir la imagen.</string>
     <string name="error_unknown">Algo ha fallado al traducir. Inténtalo de nuevo.</string>
+    <string name="error_no_text">No se ha encontrado texto en la imagen.</string>
+    <string name="error_unknown_language">No se ha podido reconocer el idioma del texto.</string>
+    <string name="error_language_not_supported">Ese idioma no se puede traducir en el teléfono. Activa «Máxima calidad» en Avanzado para traducirlo con Gemini en la nube.</string>
+    <string name="error_download">No se ha podido descargar lo necesario para traducir. Comprueba la conexión e inténtalo de nuevo.</string>
 
     <!-- Configuración -->
-    <string name="setup_tagline">Haz una captura y pulsa «Traducir». Nada más.</string>
+    <string name="setup_tagline">Haz una captura y pulsa «Traducir». Nada más. Sin cuentas ni claves: traduce en tu teléfono.</string>
     <string name="setup_key_title">Clave de Gemini API</string>
-    <string name="setup_key_desc">Kitra usa tu propia clave. Se guarda cifrada en este teléfono y solo se envía a Google.</string>
+    <string name="setup_key_desc">Usa tu propia clave de Gemini API. Se guarda cifrada en este teléfono y solo se envía a Google.</string>
     <string name="setup_key_get">Obtener una clave en Google AI Studio</string>
     <string name="setup_key_hint">Pega aquí tu clave</string>
     <string name="setup_key_save">Guardar y probar</string>
@@ -54,11 +63,41 @@
     <string name="setup_share_title">También desde «Compartir»</string>
     <string name="setup_share_desc">Comparte cualquier imagen con Kitra para traducirla, aunque no sea una captura.</string>
     <string name="setup_privacy_title">Privacidad</string>
-    <string name="setup_privacy_body">• La imagen solo se envía a Google (Gemini API) cuando pulsas «Traducir».\n• Kitra no guarda capturas ni traducciones, no tiene servidor ni analíticas.\n• Importante: en el nivel gratuito de Gemini API, Google usa lo que envías y las respuestas para mejorar sus productos, y revisores humanos pueden leerlo. No traduzcas información sensible con una clave gratuita.\n• Con facturación activada (nivel de pago), Google indica que no usa tus peticiones para mejorar sus productos.</string>
+    <string name="setup_privacy_body">• Kitra traduce en el propio teléfono: la captura no sale del móvil.
+• No guarda capturas ni traducciones, no tiene servidor ni analíticas.
+• Solo descarga de Google los paquetes de idioma y los modelos de reconocimiento de texto, nunca envía tus capturas.
+• Si activas «Máxima calidad» en Avanzado, la captura se envía a Google (Gemini API) con tu propia clave al pulsar «Traducir». En el nivel gratuito, Google usa ese contenido para mejorar sus productos y revisores humanos pueden leerlo; con facturación activada, no.</string>
     <string name="setup_privacy_terms">Ver condiciones de Gemini API</string>
     <string name="setup_advanced">Avanzado</string>
     <string name="setup_model">Modelo de Gemini</string>
     <string name="setup_model_desc">Predeterminado: %1$s. Cámbialo solo si sabes lo que haces.</string>
     <string name="setup_debug_fake">Proveedor falso (solo depuración)</string>
     <string name="shortcut_share">Traducir</string>
+
+    <!-- Fase 2: motores en el dispositivo -->
+    <string name="setup_pack_ready">Listo para traducir sin conexión.</string>
+    <string name="setup_pack_downloading">Descargando el idioma (unos 30 MB)…</string>
+    <string name="setup_pack_waiting_wifi">Se descargará cuando haya wifi (unos 30 MB).</string>
+    <string name="setup_pack_download_now">Descargar ahora con datos</string>
+    <string name="setup_pack_failed">No se ha podido descargar el idioma.</string>
+    <string name="setup_pack_missing">Se descargará la primera vez que traduzcas (unos 30 MB).</string>
+    <string name="setup_engine_title">Motor de traducción</string>
+    <string name="setup_engine_nano">Gemini Nano, en el teléfono</string>
+    <string name="setup_engine_mlkit">Traductor de Google en el teléfono (ML Kit)</string>
+    <string name="setup_engine_cloud">Gemini en la nube (máxima calidad)</string>
+    <string name="setup_engine_auto">Kitra elige solo el mejor motor disponible. Ahora: %1$s.</string>
+    <string name="setup_nano_unavailable">Gemini Nano: no disponible en este teléfono.</string>
+    <string name="setup_nano_available">Gemini Nano: disponible.</string>
+    <string name="setup_nano_downloadable">Gemini Nano: se puede descargar (lo gestiona el sistema).</string>
+    <string name="setup_nano_downloading">Gemini Nano: descargando…</string>
+    <string name="setup_nano_download">Descargar Gemini Nano</string>
+    <string name="setup_cloud_title">Máxima calidad: Gemini en la nube</string>
+    <string name="setup_cloud_desc">Envía la captura a Google con tu propia clave de Gemini API. Entiende mejor el contexto y la interfaz, pero la imagen sale del teléfono.</string>
+    <string name="setup_packs_title">Idiomas descargados</string>
+    <string name="setup_packs_empty">Ninguno todavía.</string>
+    <string name="setup_pack_delete">Borrar</string>
+    <string name="setup_legal_title">Aviso legal de la traducción</string>
+    <string name="setup_legal_body">Las traducciones en el teléfono usan Google Translate (ML Kit).
+
+THIS SERVICE MAY CONTAIN TRANSLATIONS POWERED BY GOOGLE. GOOGLE DISCLAIMS ALL WARRANTIES RELATED TO THE TRANSLATIONS, EXPRESS OR IMPLIED, INCLUDING ANY WARRANTIES OF ACCURACY, RELIABILITY, AND ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.</string>
 </resources>

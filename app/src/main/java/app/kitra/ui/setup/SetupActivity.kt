@@ -1,5 +1,6 @@
 package app.kitra.ui.setup
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -9,7 +10,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -59,19 +60,30 @@ import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import app.kitra.BuildConfig
-import app.kitra.ProviderFactory
+import app.kitra.KitraApp
 import app.kitra.R
+import app.kitra.core.Engine
 import app.kitra.core.Language
+import app.kitra.core.NanoState
 import app.kitra.core.TranslationException
 import app.kitra.core.gemini.GeminiProvider
 import app.kitra.detect.MediaAccess
 import app.kitra.detect.Permissions
 import app.kitra.detect.ScreenshotDetector
+import app.kitra.engine.Engines
+import app.kitra.engine.LanguagePacks
+import app.kitra.engine.Nano
+import app.kitra.engine.PackState
+import app.kitra.engine.TextRecognitionEngine
 import app.kitra.settings.Settings
 import app.kitra.ui.KitraTheme
+import app.kitra.ui.translate.languageName
 import kotlinx.coroutines.launch
 
-/** Configuración inicial y ajustes (SPEC §5 y §6): una sola pantalla que solo se abre desde el lanzador. */
+/**
+ * Configuración inicial y ajustes (SPEC §6). Sin clave: solo idioma de destino y permisos.
+ * Lo demás (motor, Gemini en la nube, idiomas descargados) está en «Avanzado».
+ */
 class SetupActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -87,15 +99,24 @@ class SetupActivity : ComponentActivity() {
         recreate()
     }
 
-    /** Solo depuración: permite activar el proveedor falso desde adb para pruebas automatizadas. */
+    /** Solo depuración: permite elegir proveedor desde adb para pruebas automatizadas y comparativas. */
     private fun applyDebugExtras(intent: Intent) {
-        if (BuildConfig.DEBUG && intent.hasExtra(EXTRA_DEBUG_FAKE)) {
-            Settings(this).useFakeProvider = intent.getBooleanExtra(EXTRA_DEBUG_FAKE, false)
+        if (!BuildConfig.DEBUG) return
+        val settings = Settings(this)
+        if (intent.hasExtra(EXTRA_DEBUG_FAKE)) settings.useFakeProvider = intent.getBooleanExtra(EXTRA_DEBUG_FAKE, false)
+        intent.getStringExtra(EXTRA_DEBUG_ENGINE)?.let { value ->
+            settings.engineOverride = when (value.lowercase()) {
+                "nano" -> Engine.GEMINI_NANO
+                "mlkit" -> Engine.ML_KIT
+                "cloud" -> Engine.GEMINI_CLOUD
+                else -> null
+            }
         }
     }
 
     companion object {
         const val EXTRA_DEBUG_FAKE = "debug_fake_provider"
+        const val EXTRA_DEBUG_ENGINE = "debug_engine"
     }
 }
 
@@ -106,21 +127,17 @@ private fun SetupScreen(settings: Settings) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    var hasKey by remember { mutableStateOf(settings.apiKey.hasKey()) }
-    var editingKey by remember { mutableStateOf(!hasKey) }
-    var keyInput by remember { mutableStateOf("") }
-    var keyStatus by remember { mutableStateOf(KeyStatus.IDLE) }
-    var keyError by remember { mutableStateOf<Int?>(null) }
     var language by remember { mutableStateOf(settings.targetLanguage) }
     var detection by remember { mutableStateOf(settings.detectionEnabled) }
-    var fake by remember { mutableStateOf(settings.useFakeProvider) }
-    var model by remember { mutableStateOf(settings.model) }
     var showAdvanced by remember { mutableStateOf(false) }
-    // Se incrementa para volver a leer los permisos (al volver de los ajustes del sistema, etc.).
-    var permissionsTick by remember { mutableIntStateOf(0) }
+    // Se incrementa para volver a leer permisos y estados (al volver de los ajustes del sistema, etc.).
+    var refreshTick by remember { mutableIntStateOf(0) }
+    val packStates by LanguagePacks.states.collectAsState()
+    var nanoState by remember { mutableStateOf<NanoState?>(null) }
+    var nanoBytes by remember { mutableStateOf<Long?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        permissionsTick++
+        refreshTick++
         ScreenshotDetector.sync(context)
     }
     fun requestPermissions() {
@@ -128,40 +145,40 @@ private fun SetupScreen(settings: Settings) {
         permissionLauncher.launch(Permissions.detectionPermissions())
     }
 
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        permissionsTick++
-        ScreenshotDetector.sync(context)
+    fun requestTargetPack(lang: Language) {
+        scope.launch {
+            LanguagePacks.refresh(lang.code)
+            if (LanguagePacks.states.value[lang.code] != PackState.READY) {
+                LanguagePacks.request(context, lang.code, wifiOnly = true)
+            }
+            settings.targetPackRequested = lang.code
+        }
     }
 
-    fun testKey(newKey: String?) {
-        keyStatus = KeyStatus.TESTING
-        keyError = null
-        scope.launch {
-            val key = newKey ?: settings.apiKey.load()
-            try {
-                if (key == null) throw TranslationException.InvalidKey()
-                ProviderFactory.gemini(key, settings.model).verify()
-                if (newKey != null) settings.apiKey.save(newKey)
-                hasKey = true
-                editingKey = false
-                keyInput = ""
-                keyStatus = KeyStatus.OK
-                // Siguiente paso natural del alta: pedir permisos sin que el usuario tenga que buscarlos.
-                if (settings.detectionEnabled && !settings.permissionsPrompted && !Permissions.canDetect(context)) {
-                    requestPermissions()
-                }
-            } catch (e: Exception) {
-                keyStatus = KeyStatus.IDLE
-                keyError = when (e) {
-                    is TranslationException.InvalidKey -> R.string.error_invalid_key
-                    is TranslationException.NoConnection -> R.string.error_no_connection
-                    is TranslationException.QuotaExceeded -> R.string.error_quota
-                    is TranslationException.ModelNotFound -> R.string.error_model
-                    is TranslationException.Unavailable -> R.string.error_unavailable
-                    else -> R.string.error_unknown
-                }
+    fun downloadNano() {
+        nanoState = NanoState.DOWNLOADING
+        KitraApp.scope.launch {
+            runCatching { Nano.download().collect { nanoBytes = it } }
+            nanoState = Nano.state()
+        }
+    }
+
+    // Primera apertura: todo lo necesario se pone en marcha solo, sin que el usuario tenga que buscarlo.
+    LaunchedEffect(Unit) {
+        if (detection && !settings.permissionsPrompted && !Permissions.canDetect(context)) requestPermissions()
+        if (settings.targetPackRequested != language.code) requestTargetPack(language) else LanguagePacks.refresh(language.code)
+        KitraApp.scope.launch {
+            if (!runCatching { TextRecognitionEngine.modulesReady(context) }.getOrDefault(true)) {
+                runCatching { TextRecognitionEngine.installModules(context) }
             }
         }
+        nanoState = Nano.state()
+        if (nanoState == NanoState.DOWNLOADABLE && LanguagePacks.isUnmetered(context)) downloadNano()
+    }
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        refreshTick++
+        ScreenshotDetector.sync(context)
     }
 
     Surface(Modifier.fillMaxSize()) {
@@ -176,56 +193,13 @@ private fun SetupScreen(settings: Settings) {
             Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold)
             Text(stringResource(R.string.setup_tagline), style = MaterialTheme.typography.bodyLarge)
 
-            Section(stringResource(R.string.setup_key_title)) {
-                Text(stringResource(R.string.setup_key_desc), style = MaterialTheme.typography.bodyMedium)
-                if (editingKey) {
-                    TextButton(onClick = { openUrl(context, "https://aistudio.google.com/apikey") }) {
-                        Text(stringResource(R.string.setup_key_get))
-                    }
-                    OutlinedTextField(
-                        value = keyInput,
-                        onValueChange = { keyInput = it.trim() },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        placeholder = { Text(stringResource(R.string.setup_key_hint)) },
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Button(
-                            enabled = keyInput.isNotBlank() && keyStatus != KeyStatus.TESTING,
-                            onClick = { testKey(keyInput) },
-                        ) { Text(stringResource(R.string.setup_key_save)) }
-                        if (hasKey) TextButton(onClick = { editingKey = false; keyInput = "" }) { Text(stringResource(android.R.string.cancel)) }
-                    }
-                } else {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            stringResource(if (keyStatus == KeyStatus.OK) R.string.setup_key_ok else R.string.setup_key_saved),
-                            modifier = Modifier.weight(1f),
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        TextButton(enabled = keyStatus != KeyStatus.TESTING, onClick = { testKey(null) }) {
-                            Text(stringResource(R.string.setup_key_test))
-                        }
-                        TextButton(onClick = { editingKey = true; keyStatus = KeyStatus.IDLE }) { Text(stringResource(R.string.setup_key_change)) }
-                    }
-                }
-                if (keyStatus == KeyStatus.TESTING) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.setup_key_testing), style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
-                keyError?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
-            }
-
             Section(stringResource(R.string.setup_lang_title)) {
                 LanguagePicker(language) {
                     language = it
                     settings.targetLanguage = it
+                    requestTargetPack(it)
                 }
+                PackStatus(packStates[language.code]) { LanguagePacks.request(context, language.code, wifiOnly = false) }
             }
 
             Section(stringResource(R.string.setup_detect_title)) {
@@ -240,9 +214,9 @@ private fun SetupScreen(settings: Settings) {
                     })
                 }
                 if (detection) {
-                    // Leer permissionsTick hace que este bloque se recalcule al cambiar los permisos.
-                    val access = permissionsTick.let { Permissions.mediaAccess(context) }
-                    val notifications = permissionsTick.let { Permissions.notificationsAllowed(context) }
+                    // Leer refreshTick hace que este bloque se recalcule al cambiar los permisos.
+                    val access = refreshTick.let { Permissions.mediaAccess(context) }
+                    val notifications = refreshTick.let { Permissions.notificationsAllowed(context) }
                     when {
                         access == MediaAccess.PARTIAL -> PermissionHint(stringResource(R.string.setup_perm_partial)) { openAppSettings(context) }
                         access == MediaAccess.DENIED && settings.permissionsPrompted -> {
@@ -268,30 +242,206 @@ private fun SetupScreen(settings: Settings) {
 
             Section(stringResource(R.string.setup_privacy_title), highlighted = true) {
                 Text(stringResource(R.string.setup_privacy_body), style = MaterialTheme.typography.bodyMedium)
-                TextButton(onClick = { openUrl(context, "https://ai.google.dev/gemini-api/terms") }) {
-                    Text(stringResource(R.string.setup_privacy_terms))
-                }
             }
 
             TextButton(onClick = { showAdvanced = !showAdvanced }) { Text(stringResource(R.string.setup_advanced)) }
             if (showAdvanced) {
-                OutlinedTextField(
-                    value = model,
-                    onValueChange = { model = it; settings.model = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.setup_model)) },
-                    supportingText = { Text(stringResource(R.string.setup_model_desc, GeminiProvider.DEFAULT_MODEL)) },
-                )
-                if (BuildConfig.DEBUG) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(R.string.setup_debug_fake), Modifier.weight(1f))
-                        Switch(checked = fake, onCheckedChange = { fake = it; settings.useFakeProvider = it })
+                AdvancedSettings(settings, nanoState, nanoBytes, onDownloadNano = ::downloadNano)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PackStatus(state: PackState?, onDownloadNow: () -> Unit) {
+    val style = MaterialTheme.typography.bodyMedium
+    when (state) {
+        PackState.READY -> Text(stringResource(R.string.setup_pack_ready), color = MaterialTheme.colorScheme.primary, style = style)
+        PackState.DOWNLOADING -> Row(verticalAlignment = Alignment.CenterVertically) {
+            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.setup_pack_downloading), style = style)
+        }
+        PackState.WAITING_FOR_WIFI -> {
+            Text(stringResource(R.string.setup_pack_waiting_wifi), style = style)
+            TextButton(onClick = onDownloadNow) { Text(stringResource(R.string.setup_pack_download_now)) }
+        }
+        PackState.FAILED -> {
+            Text(stringResource(R.string.setup_pack_failed), color = MaterialTheme.colorScheme.error, style = style)
+            TextButton(onClick = onDownloadNow) { Text(stringResource(R.string.retry)) }
+        }
+        PackState.NOT_DOWNLOADED -> {
+            Text(stringResource(R.string.setup_pack_missing), style = style)
+            TextButton(onClick = onDownloadNow) { Text(stringResource(R.string.setup_pack_download_now)) }
+        }
+        PackState.UNKNOWN, null -> Unit
+    }
+}
+
+@Composable
+private fun AdvancedSettings(settings: Settings, nanoState: NanoState?, nanoBytes: Long?, onDownloadNano: () -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var cloud by remember { mutableStateOf(settings.cloudEnabled) }
+    var hasKey by remember { mutableStateOf(settings.apiKey.hasKey()) }
+    var downloaded by remember { mutableStateOf<List<String>?>(null) }
+    var fake by remember { mutableStateOf(settings.useFakeProvider) }
+    LaunchedEffect(Unit) { downloaded = runCatching { LanguagePacks.downloaded() }.getOrDefault(emptyList()) }
+
+    val engineName = stringResource(
+        when {
+            cloud && hasKey -> R.string.setup_engine_cloud
+            nanoState == NanoState.AVAILABLE -> R.string.setup_engine_nano
+            else -> R.string.setup_engine_mlkit
+        },
+    )
+    Section(stringResource(R.string.setup_engine_title)) {
+        Text(stringResource(R.string.setup_engine_auto, engineName), style = MaterialTheme.typography.bodyMedium)
+        when (nanoState) {
+            NanoState.AVAILABLE -> Text(stringResource(R.string.setup_nano_available), style = MaterialTheme.typography.bodySmall)
+            NanoState.DOWNLOADABLE -> {
+                Text(stringResource(R.string.setup_nano_downloadable), style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = onDownloadNano) { Text(stringResource(R.string.setup_nano_download)) }
+            }
+            NanoState.DOWNLOADING -> Text(
+                stringResource(R.string.setup_nano_downloading) + (nanoBytes?.let { " ${it / (1024 * 1024)} MB" } ?: ""),
+                style = MaterialTheme.typography.bodySmall,
+            )
+            NanoState.UNAVAILABLE -> Text(stringResource(R.string.setup_nano_unavailable), style = MaterialTheme.typography.bodySmall)
+            null -> Unit
+        }
+    }
+
+    Section(stringResource(R.string.setup_cloud_title)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.setup_cloud_desc), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.width(12.dp))
+            Switch(checked = cloud, onCheckedChange = { cloud = it; settings.cloudEnabled = it })
+        }
+        if (cloud) CloudKeySection(settings) { hasKey = it }
+    }
+
+    Section(stringResource(R.string.setup_packs_title)) {
+        val list = downloaded
+        if (list != null && list.isEmpty()) Text(stringResource(R.string.setup_packs_empty), style = MaterialTheme.typography.bodyMedium)
+        list?.forEach { code ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(languageName(code).replaceFirstChar { it.uppercase() }, Modifier.weight(1f))
+                TextButton(onClick = {
+                    scope.launch {
+                        runCatching { LanguagePacks.delete(code) }
+                        downloaded = runCatching { LanguagePacks.downloaded() }.getOrDefault(emptyList())
                     }
+                }) { Text(stringResource(R.string.setup_pack_delete)) }
+            }
+        }
+    }
+
+    Section(stringResource(R.string.setup_legal_title)) {
+        Text(stringResource(R.string.setup_legal_body), style = MaterialTheme.typography.bodySmall)
+        TextButton(onClick = { openUrl(context, "https://ai.google.dev/gemini-api/terms") }) {
+            Text(stringResource(R.string.setup_privacy_terms))
+        }
+    }
+
+    if (BuildConfig.DEBUG) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.setup_debug_fake), Modifier.weight(1f))
+            Switch(checked = fake, onCheckedChange = { fake = it; settings.useFakeProvider = it })
+        }
+    }
+}
+
+/** Clave de Gemini API para el modo opcional en la nube. Solo se guarda si la prueba de conexión pasa. */
+@Composable
+private fun CloudKeySection(settings: Settings, onHasKeyChanged: (Boolean) -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var hasKey by remember { mutableStateOf(settings.apiKey.hasKey()) }
+    var editingKey by remember { mutableStateOf(!hasKey) }
+    var keyInput by remember { mutableStateOf("") }
+    var keyStatus by remember { mutableStateOf(KeyStatus.IDLE) }
+    var keyError by remember { mutableStateOf<Int?>(null) }
+    var model by remember { mutableStateOf(settings.model) }
+
+    fun testKey(newKey: String?) {
+        keyStatus = KeyStatus.TESTING
+        keyError = null
+        scope.launch {
+            val key = newKey ?: settings.apiKey.load()
+            try {
+                if (key == null) throw TranslationException.InvalidKey()
+                Engines.gemini(key, settings.model).verify()
+                if (newKey != null) settings.apiKey.save(newKey)
+                hasKey = true
+                onHasKeyChanged(true)
+                editingKey = false
+                keyInput = ""
+                keyStatus = KeyStatus.OK
+            } catch (e: Exception) {
+                keyStatus = KeyStatus.IDLE
+                keyError = when (e) {
+                    is TranslationException.InvalidKey -> R.string.error_invalid_key
+                    is TranslationException.NoConnection -> R.string.error_no_connection
+                    is TranslationException.QuotaExceeded -> R.string.error_quota
+                    is TranslationException.ModelNotFound -> R.string.error_model
+                    is TranslationException.Unavailable -> R.string.error_unavailable
+                    else -> R.string.error_unknown
                 }
             }
         }
     }
+
+    Text(stringResource(R.string.setup_key_desc), style = MaterialTheme.typography.bodyMedium)
+    if (editingKey) {
+        TextButton(onClick = { openUrl(context, "https://aistudio.google.com/apikey") }) {
+            Text(stringResource(R.string.setup_key_get))
+        }
+        OutlinedTextField(
+            value = keyInput,
+            onValueChange = { keyInput = it.trim() },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            placeholder = { Text(stringResource(R.string.setup_key_hint)) },
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Button(
+                enabled = keyInput.isNotBlank() && keyStatus != KeyStatus.TESTING,
+                onClick = { testKey(keyInput) },
+            ) { Text(stringResource(R.string.setup_key_save)) }
+            if (hasKey) TextButton(onClick = { editingKey = false; keyInput = "" }) { Text(stringResource(android.R.string.cancel)) }
+        }
+    } else {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                stringResource(if (keyStatus == KeyStatus.OK) R.string.setup_key_ok else R.string.setup_key_saved),
+                modifier = Modifier.weight(1f),
+                color = MaterialTheme.colorScheme.primary,
+            )
+            TextButton(enabled = keyStatus != KeyStatus.TESTING, onClick = { testKey(null) }) {
+                Text(stringResource(R.string.setup_key_test))
+            }
+            TextButton(onClick = { editingKey = true; keyStatus = KeyStatus.IDLE }) { Text(stringResource(R.string.setup_key_change)) }
+        }
+    }
+    if (keyStatus == KeyStatus.TESTING) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.setup_key_testing), style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+    keyError?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
+    OutlinedTextField(
+        value = model,
+        onValueChange = { model = it; settings.model = it },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true,
+        label = { Text(stringResource(R.string.setup_model)) },
+        supportingText = { Text(stringResource(R.string.setup_model_desc, GeminiProvider.DEFAULT_MODEL)) },
+    )
 }
 
 @Composable
@@ -329,11 +479,11 @@ private fun LanguagePicker(selected: Language, onSelect: (Language) -> Unit) {
     }
 }
 
-private fun openUrl(context: android.content.Context, url: String) {
+private fun openUrl(context: Context, url: String) {
     runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) }
 }
 
-private fun openAppSettings(context: android.content.Context) {
+private fun openAppSettings(context: Context) {
     context.startActivity(
         Intent(SystemSettings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
     )
