@@ -19,11 +19,20 @@ class TranslationPromptTest {
     }
 
     @Test
+    fun onDevicePromptKeepsTheKeyRulesAndIsShorter() {
+        val prompt = TranslationPrompt.onDeviceSystemInstruction(Language.SPANISH)
+        assertTrue(prompt.contains("into Spanish"))
+        assertTrue(prompt.contains("status bar"))
+        assertTrue(prompt.contains("Do not summarise"))
+        assertTrue(prompt.length < TranslationPrompt.systemInstruction(Language.SPANISH).length)
+    }
+
+    @Test
     fun fakeProviderStreamsSeveralChunks() = runTest {
         val chunks = FakeTranslationProvider(chunkDelayMs = 0)
             .translate(EncodedImage(ByteArray(2048), "image/jpeg"), Language.SPANISH).toList()
         assertTrue(chunks.size > 5)
-        assertTrue(chunks.joinToString("") { it.text }.contains("Proveedor falso"))
+        assertTrue(chunks.texts().joinToString("").contains("Proveedor falso"))
     }
 
     @Test

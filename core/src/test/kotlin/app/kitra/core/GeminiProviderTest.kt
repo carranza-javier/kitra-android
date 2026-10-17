@@ -49,7 +49,7 @@ class GeminiProviderTest {
         val response = FakeResponse(200, sse("Hola", " mundo", "!"))
         val transport = RecordingTransport { response }
         val chunks = provider(transport).translate(image, Language.SPANISH).toList()
-        assertEquals(listOf("Hola", " mundo", "!"), chunks.map { it.text })
+        assertEquals(listOf("Hola", " mundo", "!"), chunks.texts())
         assertTrue(response.closed)
         assertEquals(1, transport.requests.size)
     }
@@ -84,7 +84,7 @@ class GeminiProviderTest {
             "",
         )
         val chunks = provider(RecordingTransport { FakeResponse(200, lines) }).translate(image, Language.SPANISH).toList()
-        assertEquals(listOf("Hola"), chunks.map { it.text })
+        assertEquals(listOf("Hola"), chunks.texts())
     }
 
     @Test
@@ -167,7 +167,7 @@ class GeminiProviderTest {
     fun cancellingStopsAndClosesResponse() = runTest {
         val response = FakeResponse(200, sse("uno", "dos", "tres"))
         val first = provider(RecordingTransport { response }).translate(image, Language.SPANISH).first()
-        assertEquals("uno", first.text)
+        assertEquals("uno", (first as TranslationEvent.Text).text)
         assertTrue(response.closed)
     }
 
@@ -194,3 +194,5 @@ class GeminiProviderTest {
         }
     }
 }
+
+internal fun List<TranslationEvent>.texts(): List<String> = filterIsInstance<TranslationEvent.Text>().map { it.text }

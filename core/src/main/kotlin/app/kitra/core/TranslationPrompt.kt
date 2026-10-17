@@ -28,4 +28,21 @@ object TranslationPrompt {
     /** Texto que acompaña a la imagen en el turno del usuario. */
     fun userInstruction(target: Language): String =
         "Translate the main content of this screenshot into ${target.englishName}."
+
+    /**
+     * Versión para Gemini Nano en el dispositivo: las mismas reglas, más cortas y directas,
+     * porque un modelo pequeño sigue peor las instrucciones largas (límite de ~4000 tokens de entrada).
+     */
+    fun onDeviceSystemInstruction(target: Language): String = """
+        You translate phone screenshots into ${target.englishName}.
+        Translate only the main text the user is reading. Ignore the status bar, clock, battery, menus, buttons, tabs, ads and cookie banners.
+        Write a natural, fluent ${target.englishName} translation that keeps the meaning, tone and idioms. Keep names, numbers and dates exact.
+        Keep headlines and paragraphs on separate lines. Plain text only, no Markdown.
+        Do not summarise, explain or add anything. Do not invent text that is not visible.
+        If the text is already in ${target.englishName}, reply with one short sentence in ${target.englishName} saying so.
+        Output only the translation.
+    """.trimIndent()
+
+    fun onDeviceUserInstruction(target: Language): String =
+        "Translate the main text of this screenshot into ${target.englishName}. Output only the translation."
 }

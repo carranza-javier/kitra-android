@@ -5,7 +5,8 @@ import app.kitra.core.HttpRequest
 import app.kitra.core.HttpResponse
 import app.kitra.core.HttpTransport
 import app.kitra.core.Language
-import app.kitra.core.TranslationChunk
+import app.kitra.core.Engine
+import app.kitra.core.TranslationEvent
 import app.kitra.core.TranslationException
 import app.kitra.core.TranslationPrompt
 import app.kitra.core.TranslationProvider
@@ -50,7 +51,9 @@ class GeminiProvider(
         require(MODEL_PATTERN.matches(model)) { "Invalid model name" }
     }
 
-    override fun translate(image: EncodedImage, target: Language): Flow<TranslationChunk> = flow {
+    override val engine: Engine get() = Engine.GEMINI_CLOUD
+
+    override fun translate(image: EncodedImage, target: Language): Flow<TranslationEvent> = flow {
         val request = HttpRequest(
             method = "POST",
             url = "$baseUrl/models/$model:streamGenerateContent?alt=sse",
@@ -72,7 +75,7 @@ class GeminiProvider(
                     val text = parseChunk(payload)
                     if (text.isNotEmpty()) {
                         emittedAny = true
-                        emit(TranslationChunk(text))
+                        emit(TranslationEvent.Text(text))
                     }
                 }
             } finally {
