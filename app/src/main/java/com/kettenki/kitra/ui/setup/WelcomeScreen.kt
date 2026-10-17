@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -70,10 +71,15 @@ fun WelcomeScreen(onSetUpKey: () -> Unit, onBasicMode: () -> Unit) {
             // Botón principal, grande y destacado.
             Button(
                 onClick = onSetUpKey,
-                modifier = Modifier.fillMaxWidth().height(64.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp),
                 shape = RoundedCornerShape(20.dp),
             ) {
-                Text(stringResource(R.string.welcome_set_up_key), fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    stringResource(R.string.welcome_set_up_key),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                )
             }
             // Opción secundaria, como enlace de texto pequeño.
             TextButton(onClick = onBasicMode) {
